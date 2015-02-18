@@ -1,0 +1,18 @@
+Feature Design
+==============
+
+- Client to server (1 - 1) audio streaming
+	- Client requests song, server streams
+- Microphone support (client to client)
+- Server broadcasts music to all connected clients
+- Audio playing / saving on client side
+- .wav format required
+- Pausing audio (1 - 1)
+
+
+
+Wishlist
+========
+
+- Client requests multicast functionality
+- Other audio formats

@@ -1,0 +1,39 @@
+CommAudio Questions
+===================
+
+
+1. Does the server have to play audio?
+
+it can, not a requirement
+
+
+2. Does the server have to offer a list of songs?
+
+peer to peer mode > 1 client to 1 server
+multicast mode > server can't be in both modes, server plays music to all
+
+7. can a client request multicast mode?
+
+it can if we want
+
+
+3. How is the microphone support meant to work?
+
+peer to peer, one or the other
+
+
+4. Can the client and server be separate applications?
+
+yes
+
+
+5. What is a verification document?
+
+partly testing, verify that all features are working. go beyond and look at all features in place. Try to enable multiple features at the same time, test all functionality.
+
+
+6. Can the microphone be used while audio is being streamed?
+
+no
+
+ 
