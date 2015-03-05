@@ -66,7 +66,7 @@ Load Tracklist Function
 
 Open Socket Listener Function
 {
-	Open a listener socket with the specified port and protocol
+	Open a TCP listener socket for the Accept New Client Function
 	If the socket fails to open
 	{
 		Print error message
@@ -86,6 +86,8 @@ Open Socket Listener Function
 Accept New Client Function
 {
 	accept the client request
+	Create a new client TCP socket for the Control Message Handler Function
+	send the client a Start Connection message
 	add the client to a list of connected clients
 }
 
@@ -130,7 +132,7 @@ Play Music Function
 		Pick a random song from the tracklist
 		Open the song file
 
-		Create a new thread to send clients the current song
+		Create a new thread on the Send Current Song Function
 		
 		While we have not reached the end of the file and
 		the done signal has not been received
@@ -167,13 +169,15 @@ Unicast Function
 Play Song Function
 {
 	open the requested file
-
+	Open a UDP socket to the client
+	
 	While we have not reached the end of the file and
 	the done signal has not been received
 	{
 		Send 512 bytes of the song to the client via UDP
 	}
 
+	Close the UDP socket
 	Send the End Song message to the client
 }
 
@@ -200,10 +204,9 @@ Teardown Function
 		send an end connection message to the client
 	}
 
-	Close the control channel
-	If the control channel fails to close
+	Close the control listener
+	If the control listener fails to close
 	{
-		Print an error message
 		Return false
 	}
 
