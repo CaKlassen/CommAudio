@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Open the TCP listener
-	if (!openListener())
+	if (!openListener(port))
 	{
 		cerr << "Failed to open TCP listener." << endl;
 		WSACleanup();

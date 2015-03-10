@@ -9,8 +9,8 @@ using std::string;
 
 
 /* All possible message types */
-enum MessageType {START_CONNECTION};
-typedef enum MessageType MessageType; 
+enum MessageType { START_CONNECTION };
+typedef enum MessageType MessageType;
 
 /* The struct to parse data into and create data from */
 struct CMessage
