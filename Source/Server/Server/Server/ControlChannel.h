@@ -3,7 +3,7 @@
 
 #include "CMessage.h"
 
-void createControlString(CMessage *cMsg, string *str);
+void createControlString(CMessage &cMsg, string &str);
 void parseControlString(string str, CMessage *cMsg);
 void handleControlMessage(CMessage *cMsg);
 

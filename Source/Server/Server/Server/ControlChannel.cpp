@@ -38,7 +38,7 @@ using std::stringstream;
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: void createControlString(CMessage *cMsg, string *str);
+-- INTERFACE: void createControlString(CMessage &cMsg, string &str);
 --
 -- PARAMETERS:
 --     cMsg - the Control Message to create the string from
@@ -49,18 +49,18 @@ using std::stringstream;
 -- NOTES:
 --     This function creates a control string from a Control Message.
 ----------------------------------------------------------------------------------------------------------------------*/
-void createControlString(CMessage *cMsg, string *str)
+void createControlString(CMessage &cMsg, string &str)
 {
 	stringstream ss;
-	ss << cMsg->msgType << "~";
+	ss << cMsg.msgType << "~";
 
 	// Loop through all strings in the message data array
-	for (int i = 0; i < (int) cMsg->msgData.size(); i++)
+	for (int i = 0; i < (int)cMsg.msgData.size(); i++)
 	{
-		ss << cMsg->msgData[i] << "`";
+		ss << cMsg.msgData[i] << "`";
 	}
 
-	*str = ss.str();
+	str = ss.str();
 }
 
 
@@ -91,11 +91,11 @@ void parseControlString(string str, CMessage *cMsg)
 	// Parse the message type
 	int typeEnd = str.find('~');
 	cMsg->msgType = static_cast<MessageType> (atoi(str.substr(0, typeEnd).c_str()));
-	
+
 	str = str.substr(typeEnd + 1, str.length());
 
 	// Parse the message data
-	while(str.length() > 0)
+	while (str.length() > 0)
 	{
 		int dataEnd = str.find('`');
 		cMsg->msgData.emplace_back(str.substr(0, dataEnd));
@@ -129,12 +129,12 @@ void parseControlString(string str, CMessage *cMsg)
 void handleControlMessage(CMessage *cMsg)
 {
 	// Switch on the message's type
-	switch(cMsg->msgType)
+	switch (cMsg->msgType)
 	{
-		case START_CONNECTION:
-		{
-			// Do stuff
-			break;
-		}
+	case START_CONNECTION:
+	{
+		// Do stuff
+		break;
+	}
 	}
 }

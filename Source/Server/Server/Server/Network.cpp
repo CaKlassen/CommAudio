@@ -20,6 +20,7 @@
 #include "Network.h"
 
 #include <iostream>
+#include "ControlChannel.h"
 
 using namespace std;
 
@@ -92,5 +93,19 @@ bool openListener(unsigned short int port)
 ----------------------------------------------------------------------------------------------------------------------*/
 void acceptConnection()
 {
+	string startConnMsg;
 
+	GetNetVars().clients.emplace_back(Client{});
+
+	GetNetVars().clients.back().sock_tcp_control
+		= accept(GetNetVars().sock_lisn, NULL, NULL);
+
+	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
+
+	send(
+		GetNetVars().clients.back().sock_tcp_control
+		, startConnMsg.c_str()
+		, startConnMsg.length() + 1
+		, 0
+		);
 }

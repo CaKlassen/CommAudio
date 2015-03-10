@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	sMode = (ServerMode) atoi(argv[1]);
+	sMode = (ServerMode)atoi(argv[1]);
 	port = atoi(argv[2]);
 
 	// Start WinSock
@@ -206,6 +206,6 @@ bool startMulticast()
 ----------------------------------------------------------------------------------------------------------------------*/
 bool startUnicast()
 {
-	
+
 	return true;
 }

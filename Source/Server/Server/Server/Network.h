@@ -7,8 +7,9 @@
 struct Client
 {
 	SOCKET
-		sock_ctrl,
-		sock_data;
+		sock_tcp_control,
+		sock_udp_stream,
+		sock_tcp_download;
 };
 
 struct NetVars
@@ -18,6 +19,8 @@ struct NetVars
 
 	std::vector<Client> clients;
 };
+
+NetVars& GetNetVars();
 
 bool openListener(unsigned short int port);
 void acceptConnection();

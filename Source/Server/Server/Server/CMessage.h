@@ -7,7 +7,6 @@
 using std::vector;
 using std::string;
 
-
 /* All possible message types */
 enum MessageType { START_CONNECTION };
 typedef enum MessageType MessageType;
@@ -18,7 +17,6 @@ struct CMessage
 	MessageType msgType;
 	vector<string> msgData;
 };
-
 typedef struct CMessage CMessage;
 
 #endif
