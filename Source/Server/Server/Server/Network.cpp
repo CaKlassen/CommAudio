@@ -60,6 +60,21 @@ NetVars& getNetVars()
 	return nv;
 }
 
+void Server::start()
+{
+	::isAlive = true;
+}
+
+void Server::tearDown()
+{
+	::isAlive = false;
+}
+
+bool Server::isAlive()
+{
+	return isAlive;
+}
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: openListener
 --
@@ -80,7 +95,7 @@ NetVars& getNetVars()
 -- NOTES:
 --     This function opens a TCP listener socket.
 ----------------------------------------------------------------------------------------------------------------------*/
-bool openListener(unsigned short int port)
+bool Server::openListener(unsigned short int port)
 {
 	if ((getNetVars().sock_lisn = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{
@@ -92,9 +107,15 @@ bool openListener(unsigned short int port)
 	getNetVars().server.sin_addr.s_addr = htonl(INADDR_ANY);
 	getNetVars().server.sin_port = htons(port);
 
-	if (::bind(getNetVars().sock_lisn, (struct sockaddr*)&getNetVars().server, sizeof(getNetVars().server)) == SOCKET_ERROR)
+	if (bind(getNetVars().sock_lisn, (struct sockaddr*)&getNetVars().server, sizeof(getNetVars().server)) == SOCKET_ERROR)
 	{
 		cerr << "Failed to bind the TCP listen socket!" << endl;
+		return false;
+	}
+
+	if (listen(getNetVars().sock_lisn, 5))
+	{
+		cerr << "Failed to start listening!" << endl;
 		return false;
 	}
 
@@ -121,41 +142,24 @@ bool openListener(unsigned short int port)
 -- NOTES:
 --     This function accepts an incoming client connection request.
 ----------------------------------------------------------------------------------------------------------------------*/
-void acceptConnection()
+void Server::acceptConnection()
 {
-	Client& c = serverCreateClient();
+	Client& c = createClient();
 	string startConnMsg;
 
 	c.sock_tcp_control = accept(getNetVars().sock_lisn, NULL, NULL);
 	createControlString(CMessage{ START_CONNECTION }, c.buffer);
 
-	send(
-		c.sock_tcp_control
-		, startConnMsg.c_str()
-		, startConnMsg.length() + 1
-		, 0
-		);
-
-	serverSend(c, CONTROL);
+	send(c, CONTROL);
 }
 
-void serverStart()
-{
-	isAlive = true;
-}
-
-void serverTearDown()
-{
-	isAlive = false;
-}
-
-Client& serverCreateClient()
+Client& Server::createClient()
 {
 	clients.emplace_back();
 	return clients.back();
 }
 
-bool serverSend(Client& c, ClientSocket cs)
+bool Server::send(Client& c, ClientSocket cs)
 {
 	DWORD bytesSent = 0;
 
@@ -182,7 +186,7 @@ bool serverSend(Client& c, ClientSocket cs)
 	return true;
 }
 
-bool serverRecv(Client& c, ClientSocket cs)
+bool Server::recv(Client& c, ClientSocket cs)
 {
 	DWORD bytesReceived = 0;
 	DWORD Flags = 0;

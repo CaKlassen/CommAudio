@@ -15,10 +15,11 @@ struct Client
 
 	/* DON'T TOUCH BELOW */
 
-	WSAOVERLAPPED overlapped;
+	OVERLAPPED overlapped;
 	WSABUF dataBuf;
+	DWORD bytesSend;
+	DWORD bytesRecv;
 };
-
 enum ClientSocket { CONTROL, STREAM, DOWNLOAD };
 
 struct NetVars
@@ -26,16 +27,18 @@ struct NetVars
 	SOCKET sock_lisn;
 	SOCKADDR_IN server;
 };
-
 NetVars& getNetVars();
 
-bool openListener(unsigned short int port);
-void acceptConnection();
-
-void serverStart();
-void serverTearDown();
-Client& serverCreateClient();
-bool serverSend(Client& c, ClientSocket cs);
-bool serverRecv(Client& c, ClientSocket cs);
+namespace Server
+{
+	void start();
+	void tearDown();
+	bool isAlive();
+	bool openListener(unsigned short int port);
+	void acceptConnection();
+	Client& createClient();
+	bool send(Client& c, ClientSocket cs);
+	bool recv(Client& c, ClientSocket cs);
+}
 
 #endif
