@@ -206,6 +206,11 @@ bool startMulticast()
 ----------------------------------------------------------------------------------------------------------------------*/
 bool startUnicast()
 {
+	serverStart();
+
+	getchar();
+
+	serverTearDown();
 
 	return true;
 }

@@ -24,7 +24,37 @@
 
 using namespace std;
 
-NetVars& GetNetVars()
+void CALLBACK completionRoutine(
+	DWORD dwError,
+	DWORD cbTransferred,
+	LPWSAOVERLAPPED lpOverlapped,
+	DWORD dwFlags
+	);
+
+vector<Client> clients;
+bool isAlive = false;
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: getNetVars
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: NetVars& getNetVars();
+--
+-- PARAMETERS:
+--
+-- RETURNS: NetVars - The "global" NetVars structure.
+--
+-- NOTES:
+--     This function retrieves the global NetVars structure that is used to store networking variables.
+----------------------------------------------------------------------------------------------------------------------*/
+NetVars& getNetVars()
 {
 	static NetVars nv;
 	return nv;
@@ -52,17 +82,17 @@ NetVars& GetNetVars()
 ----------------------------------------------------------------------------------------------------------------------*/
 bool openListener(unsigned short int port)
 {
-	if ((GetNetVars().sock_lisn = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+	if ((getNetVars().sock_lisn = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
 	{
 		cerr << "Failed to create TCP listen socket!" << endl;
 		return false;
 	}
 
-	GetNetVars().server.sin_family = AF_INET;
-	GetNetVars().server.sin_addr.s_addr = htonl(INADDR_ANY);
-	GetNetVars().server.sin_port = htons(port);
+	getNetVars().server.sin_family = AF_INET;
+	getNetVars().server.sin_addr.s_addr = htonl(INADDR_ANY);
+	getNetVars().server.sin_port = htons(port);
 
-	if (bind(GetNetVars().sock_lisn, (struct sockaddr*)&GetNetVars().server, sizeof(GetNetVars().server)) == SOCKET_ERROR)
+	if (::bind(getNetVars().sock_lisn, (struct sockaddr*)&getNetVars().server, sizeof(getNetVars().server)) == SOCKET_ERROR)
 	{
 		cerr << "Failed to bind the TCP listen socket!" << endl;
 		return false;
@@ -82,30 +112,109 @@ bool openListener(unsigned short int port)
 --
 -- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: void acceptConnection();
+-- INTERFACE: Client acceptConnection();
 --
 -- PARAMETERS:
 --
 -- RETURNS: void.
 --
 -- NOTES:
---     This function accepts an incoming connection request from a client.
+--     This function accepts an incoming client connection request.
 ----------------------------------------------------------------------------------------------------------------------*/
 void acceptConnection()
 {
+	Client& c = serverCreateClient();
 	string startConnMsg;
 
-	GetNetVars().clients.emplace_back(Client{});
-
-	GetNetVars().clients.back().sock_tcp_control
-		= accept(GetNetVars().sock_lisn, NULL, NULL);
-
-	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
+	c.sock_tcp_control = accept(getNetVars().sock_lisn, NULL, NULL);
+	createControlString(CMessage{ START_CONNECTION }, c.buffer);
 
 	send(
-		GetNetVars().clients.back().sock_tcp_control
+		c.sock_tcp_control
 		, startConnMsg.c_str()
 		, startConnMsg.length() + 1
 		, 0
 		);
+
+	serverSend(c, CONTROL);
+}
+
+void serverStart()
+{
+	isAlive = true;
+}
+
+void serverTearDown()
+{
+	isAlive = false;
+}
+
+Client& serverCreateClient()
+{
+	clients.emplace_back();
+	return clients.back();
+}
+
+bool serverSend(Client& c, ClientSocket cs)
+{
+	DWORD bytesSent = 0;
+
+	c.overlapped = { 0 };
+	c.dataBuf.len = c.buffer.length();
+	c.dataBuf.buf = &c.buffer.at(0);
+
+	if (WSASend(
+		cs == CONTROL ? c.sock_tcp_control :
+		cs == STREAM ? c.sock_udp_stream :
+		cs == DOWNLOAD ? c.sock_tcp_download :
+		NULL,
+		&(c.dataBuf), 1, &bytesSent, 0,
+		&(c.overlapped), completionRoutine
+		) == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			cerr << "WSASend() failed with error " << WSAGetLastError() << endl;
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool serverRecv(Client& c, ClientSocket cs)
+{
+	DWORD bytesReceived = 0;
+	DWORD Flags = 0;
+
+	c.overlapped = { 0 };
+	c.dataBuf.len = c.buffer.length();
+	c.dataBuf.buf = &c.buffer.at(0);
+
+	if (WSARecv(
+		cs == CONTROL ? c.sock_tcp_control :
+		cs == STREAM ? c.sock_udp_stream :
+		cs == DOWNLOAD ? c.sock_tcp_download :
+		NULL,
+		&(c.dataBuf), 1, &bytesReceived, &Flags,
+		&(c.overlapped), completionRoutine) == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			cout << "WSARecv() failed with error " << WSAGetLastError() << endl;
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void CALLBACK completionRoutine(
+	DWORD dwError,
+	DWORD cbTransferred,
+	LPWSAOVERLAPPED lpOverlapped,
+	DWORD dwFlags
+	)
+{
+
 }
