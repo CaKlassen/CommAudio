@@ -17,11 +17,12 @@
 --     This file contains all functions related to starting, closing and running the server.
 ----------------------------------------------------------------------------------------------------------------------*/
 
+#include "Application.h"
+
 #include <iostream>
 #include <cstdlib>
 #include <WinSock2.h>
-
-#include "Application.h"
+#include <thread>
 #include "Network.h"
 #include "ControlChannel.h"
 
@@ -91,7 +92,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Open the TCP listener
-	if (!openListener(port))
+	if (!Server::openListener(port))
 	{
 		cerr << "Failed to open TCP listener." << endl;
 		WSACleanup();
@@ -183,6 +184,13 @@ bool startMulticast()
 	return true;
 }
 
+void thread_runserver()
+{
+	while (Server::isAlive())
+	{
+		Server::acceptConnection();
+	}
+}
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: startUnicast
@@ -206,6 +214,14 @@ bool startMulticast()
 ----------------------------------------------------------------------------------------------------------------------*/
 bool startUnicast()
 {
+	Server::start();
+
+	std::thread t_runserver(thread_runserver);
+	t_runserver.detach();
+
+	getchar();
+
+	Server::tearDown();
 
 	return true;
 }
