@@ -22,7 +22,10 @@
 #include <iostream>
 #include <cstdlib>
 #include <WinSock2.h>
+#include <map>
 #include <thread>
+#include "dirent.h"
+
 #include "Network.h"
 #include "ControlChannel.h"
 
@@ -30,12 +33,16 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::vector;
+using std::map;
 using std::string;
 
 // Server variables
 ServerMode sMode;
 int port;
 vector<string> tracklist;
+bool done = false;
+
+map<string, int> connectedClients;
 
 // Socket variables
 WSADATA wsaData;
@@ -75,7 +82,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	sMode = (ServerMode)atoi(argv[1]);
+	sMode = (ServerMode) atoi(argv[1]);
 	port = atoi(argv[2]);
 
 	// Start WinSock
@@ -150,9 +157,44 @@ int main(int argc, char* argv[])
 --
 -- NOTES:
 --     This function retrieves the music tracklist and loads it into the program.
+--
+--     This function uses structures and functions written by Toni Ronkko (dirent.h)
 ----------------------------------------------------------------------------------------------------------------------*/
 bool loadTracklist(vector<string> *tlist, string location)
 {
+	DIR *dir;
+	struct dirent *entry;
+	
+	// Clear the tracklist
+	tlist->clear();
+
+	// Open the music directory
+	if ((dir = opendir(location.c_str())) != NULL) 
+	{
+
+		// Find all files in the directory
+		while ((entry = readdir(dir)) != NULL) 
+		{
+			if (entry->d_type == DT_REG)
+			{
+				tlist->emplace_back(entry->d_name);
+			}
+		}
+
+		// Close the music directory
+		closedir(dir);
+	}
+	else 
+	{
+		// Directory not found
+		return false;
+	}
+
+	// Check if we have any songs
+	if (tlist->empty())
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -180,9 +222,160 @@ bool loadTracklist(vector<string> *tlist, string location)
 ----------------------------------------------------------------------------------------------------------------------*/
 bool startMulticast()
 {
+	// Open the multicast socket
+
+	// Connect to the multicast group
+
+	// Play music in a loop
+	if (!playMulticast())
+	{
+		return false;
+	}
 
 	return true;
 }
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: playMulticast
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: playMulticast();
+--
+-- PARAMETERS:
+--
+-- RETURNS: bool - whether or not there was an error while playing multicast music
+--
+-- NOTES:
+--     This function handles the multicast play loop.
+----------------------------------------------------------------------------------------------------------------------*/
+bool playMulticast()
+{
+	while (!done)
+	{
+		// Pick a random song
+		int randSong = rand() % tracklist.size();
+
+		// Open the song file
+
+		// Start the Send Current Song thread
+		std::thread tCurrentSong(sendCurrentSong, randSong);
+		tCurrentSong.detach();
+
+		// While we are not done and there is data left to send
+		while (!done)
+		{
+			// Send part of the song to the multicast socket
+		}
+
+
+		// Reload the tracklist
+		if (!done)
+		{
+			if (!loadTracklist(&tracklist, MUSIC_LOCATION))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendCurrentSong
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: sendCurrentSong(int song);
+--
+-- PARAMETERS:
+--		song - the song number in the tracklist to send
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function sends the current song to all connected clients.
+----------------------------------------------------------------------------------------------------------------------*/
+void sendCurrentSong(int song)
+{
+	CMessage cMsg;
+	cMsg.msgType = NOW_PLAYING;
+
+	// Loop through all clients in the connected client list
+
+	
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendUnicast
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void sendUnicast(string ip);
+--
+-- PARAMETERS:
+--		ip - the requesting client's ip
+--      song - the requested song
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function streams a song to a client via UDP
+----------------------------------------------------------------------------------------------------------------------*/
+void playUnicast(string ip, string song)
+{
+
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: saveUnicast
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void saveUnicast(string ip, string song);
+--
+-- PARAMETERS:
+--		ip - the ip of the requesting client
+--      song - the requested song
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function sends a song via TCP to a requesting client.
+----------------------------------------------------------------------------------------------------------------------*/
+void saveUnicast(string ip, string song)
+{
+
+}
+
 
 void thread_runserver()
 {
@@ -191,6 +384,7 @@ void thread_runserver()
 		Server::acceptConnection();
 	}
 }
+
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: startUnicast

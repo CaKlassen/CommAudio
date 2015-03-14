@@ -213,6 +213,36 @@ bool Server::recv(Client& c, ClientSocket cs)
 	return true;
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: disconnectClient
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void disconnectClient(int socket);
+--
+-- PARAMETERS:
+--		socket - the socket number for the disconnecting client
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function removes a client from the list of connected clients.
+----------------------------------------------------------------------------------------------------------------------*/
+void Server::disconnectClient(string ip)
+{
+	// Close the connection
+
+	// Remove the client from the list of clients
+}
+
+
 void CALLBACK completionRoutine(
 	DWORD dwError,
 	DWORD cbTransferred,

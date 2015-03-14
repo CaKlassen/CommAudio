@@ -39,6 +39,7 @@ namespace Server
 	Client& createClient();
 	bool send(Client& c, ClientSocket cs);
 	bool recv(Client& c, ClientSocket cs);
+	void disconnectClient(std::string ip);
 }
 
 #endif
