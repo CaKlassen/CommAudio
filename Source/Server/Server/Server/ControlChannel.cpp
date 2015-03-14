@@ -23,6 +23,8 @@
 #include <cstdlib>
 #include <sstream>
 #include "ControlChannel.h"
+#include "Application.h"
+#include "Network.h"
 
 using std::stringstream;
 
@@ -131,10 +133,27 @@ void handleControlMessage(CMessage *cMsg)
 	// Switch on the message's type
 	switch (cMsg->msgType)
 	{
-	case START_CONNECTION:
-	{
-		// Do stuff
-		break;
-	}
+		case END_CONNECTION:
+		{
+			// Client disconnecting
+			Server::disconnectClient(cMsg->msgData[0]);
+			break;
+		}
+
+		case PLAY_SONG:
+		{
+			// Client requesting song over UDP
+			playUnicast(cMsg->msgData[0], cMsg->msgData[1]);
+
+			break;
+		}
+
+		case SAVE_SONG:
+		{
+			// Client requesting song over TCP
+			saveUnicast(cMsg->msgData[0], cMsg->msgData[1]);
+
+			break;
+		}
 	}
 }
