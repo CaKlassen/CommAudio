@@ -4,41 +4,33 @@
 #include <WinSock2.h>
 #include <vector>
 
-struct Client
+#define DATA_BUFSIZE 8192
+
+struct SOCKET_INFORMATION
 {
-	SOCKET
-		sock_tcp_control,
-		sock_udp_stream,
-		sock_tcp_download;
-
-	std::string buffer;
-
-	/* DON'T TOUCH BELOW */
-
 	OVERLAPPED overlapped;
+	SOCKET socket;
+	CHAR buffer[DATA_BUFSIZE];
 	WSABUF dataBuf;
 	DWORD bytesSend;
 	DWORD bytesRecv;
 };
-enum ClientSocket { CONTROL, STREAM, DOWNLOAD };
 
-struct NetVars
+struct Client
 {
-	SOCKET sock_lisn;
-	SOCKADDR_IN server;
+	SOCKET_INFORMATION socketinfo;
 };
-NetVars& getNetVars();
 
 namespace Server
 {
 	void start();
 	void tearDown();
 	bool isAlive();
-	bool openListener(unsigned short int port);
-	void acceptConnection();
+	bool openListener(SOCKET& listenSocket, unsigned short int port);
+	bool acceptConnection(SOCKET listenSocket);
 	Client& createClient();
-	bool send(Client& c, ClientSocket cs);
-	bool recv(Client& c, ClientSocket cs);
+	bool send(Client& c, std::string msg);
+	bool recv(Client& c, std::string msg);
 	void disconnectClient(std::string ip);
 }
 
