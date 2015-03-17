@@ -24,7 +24,7 @@
 
 using namespace std;
 
-void CALLBACK onRecv(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags);
+void CALLBACK onReceive(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags);
 
 vector<Client> clients;
 bool isAlive = false;
@@ -47,7 +47,7 @@ bool Server::isAlive()
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: openListener
 --
--- DATE: March 9, 2015
+-- DATE: March 16, 2015
 --
 -- REVISIONS: (Date and Description)
 --
@@ -55,11 +55,13 @@ bool Server::isAlive()
 --
 -- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: bool openListener();
+-- INTERFACE: bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 --
 -- PARAMETERS:
+--		listenSocket - The socket to be assigned as the listening socket
+--		port - the port number to listen on
 --
--- RETURNS: bool - whether or not the listener was opened successfully.
+-- RETURNS: bool - whether or not the listener was opened successfully
 --
 -- NOTES:
 --     This function opens a TCP listener socket.
@@ -104,11 +106,12 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 --
 -- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: Client acceptConnection();
+-- INTERFACE: bool Server::acceptConnection(SOCKET listenSocket)
 --
 -- PARAMETERS:
+--		listenSocket - the socket to accept connections from
 --
--- RETURNS: void.
+-- RETURNS: bool - whether the "start connection" message was sent successfuly to the client after their acceptance
 --
 -- NOTES:
 --     This function accepts an incoming client connection request.
@@ -121,7 +124,7 @@ bool Server::acceptConnection(SOCKET listenSocket)
 	c.socketinfo.socket = accept(listenSocket, NULL, NULL);
 	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
 
-	send(c, startConnMsg);
+	return send(c, startConnMsg);
 }
 
 Client& Server::createClient()
@@ -165,7 +168,7 @@ bool Server::recv(Client& c, std::string msg)
 
 	if (WSARecv(c.socketinfo.socket,
 		&(c.socketinfo.dataBuf), 1, &bytesReceived, &Flags,
-		&(c.socketinfo.overlapped), onRecv
+		&(c.socketinfo.overlapped), onReceive
 		) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
@@ -206,7 +209,7 @@ void Server::disconnectClient(string ip)
 	// Remove the client from the list of clients
 }
 
-void CALLBACK onRecv(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags)
+void CALLBACK onReceive(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags)
 {
 
 }
