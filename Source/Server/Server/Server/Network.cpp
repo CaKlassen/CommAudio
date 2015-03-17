@@ -24,8 +24,8 @@
 
 using namespace std;
 
-void CALLBACK onReceive(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags);
-void CALLBACK onSend(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags);
+void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+void CALLBACK onSend(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
 
 vector<Client*> clients;
 bool isAlive = false;
@@ -72,7 +72,7 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 	if ((listenSocket = WSASocketW(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED))
 		== INVALID_SOCKET)
 	{
-		cerr << "Failed to create the listening socket. Error: " << WSAGetLastError() << endl;
+		cerr << "Failed to create the listening socket. Error " << WSAGetLastError() << endl;
 		return false;
 	}
 
@@ -83,13 +83,13 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 
 	if (bind(listenSocket, (SOCKADDR*)&server, sizeof(server)) == SOCKET_ERROR)
 	{
-		cerr << "Failed to bind the listening socket. Error: " << WSAGetLastError() << endl;
+		cerr << "Failed to bind the listening socket. Error " << WSAGetLastError() << endl;
 		return false;
 	}
 
 	if (listen(listenSocket, 5))
 	{
-		cerr << "Failed to listen on the listening socket. Error: " << WSAGetLastError() << endl;
+		cerr << "Failed to listen on the listening socket. Error " << WSAGetLastError() << endl;
 		return false;
 	}
 
@@ -138,6 +138,30 @@ Client* Server::createClient()
 	return clients.back();
 }
 
+bool Server::recv(Client* c)
+{
+	DWORD bytesReceived = 0;
+	DWORD Flags = 0;
+
+	c->socketinfo.overlapped = {};
+	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
+	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
+
+	if (WSARecv(c->socketinfo.socket,
+		&(c->socketinfo.dataBuf), 1, &bytesReceived, &Flags,
+		&(c->socketinfo.overlapped), onReceive
+		) == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			cerr << "WSARecv() failed. Error " << WSAGetLastError() << endl;
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool Server::send(Client* c, std::string msg)
 {
 	DWORD bytesSent = 0;
@@ -154,31 +178,7 @@ bool Server::send(Client* c, std::string msg)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
-			cerr << "Failed to WSASend(). Error " << WSAGetLastError() << endl;
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool Server::recv(Client* c, std::string msg)
-{
-	DWORD bytesReceived = 0;
-	DWORD Flags = 0;
-
-	c->socketinfo.overlapped = {};
-	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
-	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
-
-	if (WSARecv(c->socketinfo.socket,
-		&(c->socketinfo.dataBuf), 1, &bytesReceived, &Flags,
-		&(c->socketinfo.overlapped), onReceive
-		) == SOCKET_ERROR)
-	{
-		if (WSAGetLastError() != WSA_IO_PENDING)
-		{
-			cout << "WSARecv() failed with error " << WSAGetLastError() << endl;
+			cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
 			return false;
 		}
 	}
@@ -214,19 +214,63 @@ void Server::disconnectClient(string ip)
 	// Remove the client from the list of clients
 }
 
-void CALLBACK onReceive(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags)
+void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
 	DWORD RecvBytes;
 	DWORD Flags;
+	CMessage cm;
 
 	Client* C = (Client*)overlapped;
+
+	if (error != 0)
+	{
+		cerr << "I/O operation failed. Error " << error << endl;
+	}
+
+	if (bytesTransferred == 0)
+	{
+		cout << "Closing socket " << C->socketinfo.socket << endl;
+	}
+
+	if (error != 0 || bytesTransferred == 0)
+	{
+		closesocket(C->socketinfo.socket);
+		delete C;
+		return;
+	}
+
+	parseControlString(std::string(C->socketinfo.buffer), &cm);
+	handleControlMessage(&cm);
+
+	cout << "Received \"" << C->socketinfo.buffer << "\"" << endl;
+
+	Server::recv(C);
 }
 
-void CALLBACK onSend(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags)
+void CALLBACK onSend(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
 	DWORD SendBytes;
 
 	Client* C = (Client*)overlapped;
 
+	if (error != 0)
+	{
+		cerr << "I/O operation failed. Error " << error << endl;
+	}
+
+	if (bytesTransferred == 0)
+	{
+		cout << "Closing socket " << C->socketinfo.socket << endl;
+	}
+
+	if (error != 0 || bytesTransferred == 0)
+	{
+		closesocket(C->socketinfo.socket);
+		delete C;
+		return;
+	}
+
 	cout << "Sent \"" << C->socketinfo.buffer << "\"" << endl;
+
+	Server::recv(C);
 }

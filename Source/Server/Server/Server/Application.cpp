@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 	{
 		if (!startMulticast())
 		{
-			cerr << "Error with Multicast mode." << endl;
+			cerr << "error with Multicast mode." << endl;
 			WSACleanup();
 
 			return 1;
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 	{
 		if (!startUnicast())
 		{
-			cerr << "Error with Unicast mode." << endl;
+			cerr << "error with Unicast mode." << endl;
 			WSACleanup();
 
 			return 1;

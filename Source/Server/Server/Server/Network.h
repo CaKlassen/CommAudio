@@ -29,8 +29,8 @@ namespace Server
 	bool openListener(SOCKET& listenSocket, unsigned short int port);
 	bool acceptConnection(SOCKET listenSocket);
 	Client* createClient();
+	bool recv(Client* c);
 	bool send(Client* c, std::string msg);
-	bool recv(Client* c, std::string msg);
 	void disconnectClient(std::string ip);
 }
 
