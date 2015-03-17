@@ -1,6 +1,8 @@
 #ifndef APPLICATION_H_
 #define APPLICATION_H_
 
+#define DEBUG
+
 #include <vector>
 
 #define MUSIC_LOCATION "music"

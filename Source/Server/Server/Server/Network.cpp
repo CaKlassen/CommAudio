@@ -25,8 +25,9 @@
 using namespace std;
 
 void CALLBACK onReceive(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags);
+void CALLBACK onSend(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags);
 
-vector<Client> clients;
+vector<Client*> clients;
 bool isAlive = false;
 
 void Server::start()
@@ -118,33 +119,37 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 ----------------------------------------------------------------------------------------------------------------------*/
 bool Server::acceptConnection(SOCKET listenSocket)
 {
-	Client& c = createClient();
+	Client* c = nullptr;
 	string startConnMsg;
+	SOCKET acceptedSocket;
 
-	c.socketinfo.socket = accept(listenSocket, NULL, NULL);
+	acceptedSocket = accept(listenSocket, NULL, NULL);
+	c = createClient();
+	c->socketinfo.socket = acceptedSocket;
+
 	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
 
 	return send(c, startConnMsg);
 }
 
-Client& Server::createClient()
+Client* Server::createClient()
 {
-	clients.emplace_back();
+	clients.emplace_back(new Client());
 	return clients.back();
 }
 
-bool Server::send(Client& c, std::string msg)
+bool Server::send(Client* c, std::string msg)
 {
 	DWORD bytesSent = 0;
 
-	c.socketinfo.overlapped = { 0 };
-	c.socketinfo.dataBuf.len = DATA_BUFSIZE;
-	msg.copy(c.socketinfo.buffer, DATA_BUFSIZE);
-	c.socketinfo.dataBuf.buf = c.socketinfo.buffer;
+	c->socketinfo.overlapped = {};
+	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
+	msg.copy(c->socketinfo.buffer, DATA_BUFSIZE);
+	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
-	if (WSASend(c.socketinfo.socket,
-		&(c.socketinfo.dataBuf), 1, &bytesSent, 0,
-		&(c.socketinfo.overlapped), NULL
+	if (WSASend(c->socketinfo.socket,
+		&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
+		&(c->socketinfo.overlapped), onSend
 		) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
@@ -157,18 +162,18 @@ bool Server::send(Client& c, std::string msg)
 	return true;
 }
 
-bool Server::recv(Client& c, std::string msg)
+bool Server::recv(Client* c, std::string msg)
 {
 	DWORD bytesReceived = 0;
 	DWORD Flags = 0;
 
-	c.socketinfo.overlapped = { 0 };
-	c.socketinfo.dataBuf.len = DATA_BUFSIZE;
-	c.socketinfo.dataBuf.buf = c.socketinfo.buffer;
+	c->socketinfo.overlapped = {};
+	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
+	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
-	if (WSARecv(c.socketinfo.socket,
-		&(c.socketinfo.dataBuf), 1, &bytesReceived, &Flags,
-		&(c.socketinfo.overlapped), onReceive
+	if (WSARecv(c->socketinfo.socket,
+		&(c->socketinfo.dataBuf), 1, &bytesReceived, &Flags,
+		&(c->socketinfo.overlapped), onReceive
 		) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
@@ -211,5 +216,17 @@ void Server::disconnectClient(string ip)
 
 void CALLBACK onReceive(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags)
 {
+	DWORD RecvBytes;
+	DWORD Flags;
 
+	Client* C = (Client*)overlapped;
+}
+
+void CALLBACK onSend(DWORD Error, DWORD BytesTransferred, LPWSAOVERLAPPED overlapped, DWORD InFlags)
+{
+	DWORD SendBytes;
+
+	Client* C = (Client*)overlapped;
+
+	cout << "Sent \"" << C->socketinfo.buffer << "\"" << endl;
 }

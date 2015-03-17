@@ -92,9 +92,11 @@ int main(int argc, char* argv[])
 	if (!loadTracklist(&tracklist, MUSIC_LOCATION))
 	{
 		cerr << "Unable to load music tracklist." << endl;
+#ifndef DEBUG
 		WSACleanup();
 
 		return 1;
+#endif
 	}
 
 	// Open the TCP listener
