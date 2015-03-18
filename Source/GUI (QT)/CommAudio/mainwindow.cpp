@@ -2,6 +2,16 @@
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QSlider>
+#include "Network.h"
+
+using std::string;
+
+// Client variables
+string currentSong;
+int songLength;
+
+ClientState cData;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -9,7 +19,11 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-
+    // Set up the client data structure
+    cData.ip = "127.0.0.1";
+    cData.port = 0;
+    cData.connected = false;
+    cData.sMode = NOTHING;
 
 
     /* Populates the list widget  */

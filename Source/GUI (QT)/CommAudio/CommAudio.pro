@@ -13,8 +13,16 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    ControlChannel.cpp \
+    Network.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    ControlChannel.h \
+    Network.h \
+    CMessage.h
 
 FORMS    += mainwindow.ui
+
+LIBS += -lws2_32
+CONFIG += c++11
