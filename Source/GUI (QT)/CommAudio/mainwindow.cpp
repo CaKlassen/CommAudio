@@ -164,10 +164,10 @@ void MainWindow::setTracklist(vector<string> *songs)
     // Loop through and add each new song to the tracklist
     for (int i = 0; i < (int) songs->size(); i++)
     {
-        tracklist.emplace_back(songs[i]);
+        tracklist.emplace_back(songs->at(i));
 
         // Update the tracklist GUI component
-        ui->listWidget->addItem(songs[i]);
+        ui->listWidget->addItem(QString::fromStdString(songs->at(i)));
     }
 
 }

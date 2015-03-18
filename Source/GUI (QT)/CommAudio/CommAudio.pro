@@ -15,12 +15,14 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     ControlChannel.cpp \
-    Network.cpp
+    Network.cpp \
+    MusicBuffer.cpp
 
 HEADERS  += mainwindow.h \
     ControlChannel.h \
     Network.h \
-    CMessage.h
+    CMessage.h \
+    MusicBuffer.h
 
 FORMS    += mainwindow.ui
 
