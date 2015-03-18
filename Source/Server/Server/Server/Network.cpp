@@ -24,41 +24,11 @@
 
 using namespace std;
 
-void CALLBACK completionRoutine(
-	DWORD dwError,
-	DWORD cbTransferred,
-	LPWSAOVERLAPPED lpOverlapped,
-	DWORD dwFlags
-	);
+void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+void CALLBACK onSend(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
 
-vector<Client> clients;
+vector<Client*> clients;
 bool isAlive = false;
-
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: getNetVars
---
--- DATE: March 9, 2015
---
--- REVISIONS: (Date and Description)
---
--- DESIGNER: Melvin Loho
---
--- PROGRAMMER: Melvin Loho
---
--- INTERFACE: NetVars& getNetVars();
---
--- PARAMETERS:
---
--- RETURNS: NetVars - The "global" NetVars structure.
---
--- NOTES:
---     This function retrieves the global NetVars structure that is used to store networking variables.
-----------------------------------------------------------------------------------------------------------------------*/
-NetVars& getNetVars()
-{
-	static NetVars nv;
-	return nv;
-}
 
 void Server::start()
 {
@@ -72,13 +42,13 @@ void Server::tearDown()
 
 bool Server::isAlive()
 {
-	return isAlive;
+	return ::isAlive;
 }
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: openListener
 --
--- DATE: March 9, 2015
+-- DATE: March 16, 2015
 --
 -- REVISIONS: (Date and Description)
 --
@@ -86,36 +56,40 @@ bool Server::isAlive()
 --
 -- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: bool openListener();
+-- INTERFACE: bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 --
 -- PARAMETERS:
+--		listenSocket - The socket to be assigned as the listening socket
+--		port - the port number to listen on
 --
--- RETURNS: bool - whether or not the listener was opened successfully.
+-- RETURNS: bool - whether or not the listener was opened successfully
 --
 -- NOTES:
 --     This function opens a TCP listener socket.
 ----------------------------------------------------------------------------------------------------------------------*/
-bool Server::openListener(unsigned short int port)
+bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 {
-	if ((getNetVars().sock_lisn = socket(PF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET)
+	if ((listenSocket = WSASocketW(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED))
+		== INVALID_SOCKET)
 	{
-		cerr << "Failed to create TCP listen socket!" << endl;
+		cerr << "Failed to create the listening socket. Error " << WSAGetLastError() << endl;
 		return false;
 	}
 
-	getNetVars().server.sin_family = AF_INET;
-	getNetVars().server.sin_addr.s_addr = htonl(INADDR_ANY);
-	getNetVars().server.sin_port = htons(port);
+	SOCKADDR_IN server;
+	server.sin_family = AF_INET;
+	server.sin_addr.s_addr = htonl(INADDR_ANY);
+	server.sin_port = htons(port);
 
-	if (bind(getNetVars().sock_lisn, (struct sockaddr*)&getNetVars().server, sizeof(getNetVars().server)) == SOCKET_ERROR)
+	if (bind(listenSocket, (SOCKADDR*)&server, sizeof(server)) == SOCKET_ERROR)
 	{
-		cerr << "Failed to bind the TCP listen socket!" << endl;
+		cerr << "Failed to bind the listening socket. Error " << WSAGetLastError() << endl;
 		return false;
 	}
 
-	if (listen(getNetVars().sock_lisn, 5))
+	if (listen(listenSocket, 5))
 	{
-		cerr << "Failed to start listening!" << endl;
+		cerr << "Failed to listen on the listening socket. Error " << WSAGetLastError() << endl;
 		return false;
 	}
 
@@ -133,79 +107,54 @@ bool Server::openListener(unsigned short int port)
 --
 -- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: Client acceptConnection();
+-- INTERFACE: bool Server::acceptConnection(SOCKET listenSocket)
 --
 -- PARAMETERS:
+--		listenSocket - the socket to accept connections from
 --
--- RETURNS: void.
+-- RETURNS: bool - whether the "start connection" message was sent successfuly to the client after their acceptance
 --
 -- NOTES:
 --     This function accepts an incoming client connection request.
 ----------------------------------------------------------------------------------------------------------------------*/
-void Server::acceptConnection()
+bool Server::acceptConnection(SOCKET listenSocket)
 {
-	Client& c = createClient();
+	Client* c = nullptr;
 	string startConnMsg;
+	SOCKET acceptedSocket;
 
-	c.sock_tcp_control = accept(getNetVars().sock_lisn, NULL, NULL);
-	createControlString(CMessage{ START_CONNECTION }, c.buffer);
+	acceptedSocket = accept(listenSocket, NULL, NULL);
+	c = createClient();
+	c->socketinfo.socket = acceptedSocket;
 
-	send(c, CONTROL);
+	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
+
+	return send(c, startConnMsg);
 }
 
-Client& Server::createClient()
+Client* Server::createClient()
 {
-	clients.emplace_back();
+	clients.emplace_back(new Client());
 	return clients.back();
 }
 
-bool Server::send(Client& c, ClientSocket cs)
-{
-	DWORD bytesSent = 0;
-
-	c.overlapped = { 0 };
-	c.dataBuf.len = c.buffer.length();
-	c.dataBuf.buf = &c.buffer.at(0);
-
-	if (WSASend(
-		cs == CONTROL ? c.sock_tcp_control :
-		cs == STREAM ? c.sock_udp_stream :
-		cs == DOWNLOAD ? c.sock_tcp_download :
-		NULL,
-		&(c.dataBuf), 1, &bytesSent, 0,
-		&(c.overlapped), completionRoutine
-		) == SOCKET_ERROR)
-	{
-		if (WSAGetLastError() != WSA_IO_PENDING)
-		{
-			cerr << "WSASend() failed with error " << WSAGetLastError() << endl;
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool Server::recv(Client& c, ClientSocket cs)
+bool Server::recv(Client* c)
 {
 	DWORD bytesReceived = 0;
 	DWORD Flags = 0;
 
-	c.overlapped = { 0 };
-	c.dataBuf.len = c.buffer.length();
-	c.dataBuf.buf = &c.buffer.at(0);
+	c->socketinfo.overlapped = {};
+	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
+	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
-	if (WSARecv(
-		cs == CONTROL ? c.sock_tcp_control :
-		cs == STREAM ? c.sock_udp_stream :
-		cs == DOWNLOAD ? c.sock_tcp_download :
-		NULL,
-		&(c.dataBuf), 1, &bytesReceived, &Flags,
-		&(c.overlapped), completionRoutine) == SOCKET_ERROR)
+	if (WSARecv(c->socketinfo.socket,
+		&(c->socketinfo.dataBuf), 1, &bytesReceived, &Flags,
+		&(c->socketinfo.overlapped), onReceive
+		) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
-			cout << "WSARecv() failed with error " << WSAGetLastError() << endl;
+			cerr << "WSARecv() failed. Error " << WSAGetLastError() << endl;
 			return false;
 		}
 	}
@@ -213,6 +162,29 @@ bool Server::recv(Client& c, ClientSocket cs)
 	return true;
 }
 
+bool Server::send(Client* c, std::string msg)
+{
+	DWORD bytesSent = 0;
+
+	c->socketinfo.overlapped = {};
+	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
+	msg.copy(c->socketinfo.buffer, DATA_BUFSIZE);
+	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
+
+	if (WSASend(c->socketinfo.socket,
+		&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
+		&(c->socketinfo.overlapped), onSend
+		) == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() != WSA_IO_PENDING)
+		{
+			cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
+			return false;
+		}
+	}
+
+	return true;
+}
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: disconnectClient
@@ -242,13 +214,63 @@ void Server::disconnectClient(string ip)
 	// Remove the client from the list of clients
 }
 
-
-void CALLBACK completionRoutine(
-	DWORD dwError,
-	DWORD cbTransferred,
-	LPWSAOVERLAPPED lpOverlapped,
-	DWORD dwFlags
-	)
+void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
+	DWORD RecvBytes;
+	DWORD Flags;
+	CMessage cm;
 
+	Client* C = (Client*)overlapped;
+
+	if (error != 0)
+	{
+		cerr << "I/O operation failed. Error " << error << endl;
+	}
+
+	if (bytesTransferred == 0)
+	{
+		cout << "Closing socket " << C->socketinfo.socket << endl;
+	}
+
+	if (error != 0 || bytesTransferred == 0)
+	{
+		closesocket(C->socketinfo.socket);
+		delete C;
+		return;
+	}
+
+	parseControlString(std::string(C->socketinfo.buffer), &cm);
+	handleControlMessage(&cm);
+
+	cout << "Received \"" << C->socketinfo.buffer << "\"" << endl;
+
+	Server::recv(C);
+}
+
+void CALLBACK onSend(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
+{
+	DWORD SendBytes;
+
+	Client* C = (Client*)overlapped;
+
+	if (error != 0)
+	{
+		cerr << "I/O operation failed. Error " << error << endl;
+	}
+
+	if (bytesTransferred == 0)
+	{
+		cout << "Closing socket " << C->socketinfo.socket << endl;
+	}
+
+	if (error != 0 || bytesTransferred == 0)
+	{
+		closesocket(C->socketinfo.socket);
+		delete C;
+		return;
+	}
+
+	cout << "Sent \"" << C->socketinfo.buffer << "\"" << endl;
+
+	Server::recv(C);
 }

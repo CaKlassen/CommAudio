@@ -38,11 +38,10 @@ using std::string;
 
 // Server variables
 ServerMode sMode;
+SOCKET listeningSocket;
 int port;
 vector<string> tracklist;
 bool done = false;
-
-map<string, int> connectedClients;
 
 // Socket variables
 WSADATA wsaData;
@@ -82,7 +81,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	sMode = (ServerMode) atoi(argv[1]);
+	sMode = (ServerMode)atoi(argv[1]);
 	port = atoi(argv[2]);
 
 	// Start WinSock
@@ -93,13 +92,15 @@ int main(int argc, char* argv[])
 	if (!loadTracklist(&tracklist, MUSIC_LOCATION))
 	{
 		cerr << "Unable to load music tracklist." << endl;
+#ifndef DEBUG
 		WSACleanup();
 
 		return 1;
+#endif
 	}
 
 	// Open the TCP listener
-	if (!Server::openListener(port))
+	if (!Server::openListener(listeningSocket, port))
 	{
 		cerr << "Failed to open TCP listener." << endl;
 		WSACleanup();
@@ -164,16 +165,16 @@ bool loadTracklist(vector<string> *tlist, string location)
 {
 	DIR *dir;
 	struct dirent *entry;
-	
+
 	// Clear the tracklist
 	tlist->clear();
 
 	// Open the music directory
-	if ((dir = opendir(location.c_str())) != NULL) 
+	if ((dir = opendir(location.c_str())) != NULL)
 	{
 
 		// Find all files in the directory
-		while ((entry = readdir(dir)) != NULL) 
+		while ((entry = readdir(dir)) != NULL)
 		{
 			if (entry->d_type == DT_REG)
 			{
@@ -184,7 +185,7 @@ bool loadTracklist(vector<string> *tlist, string location)
 		// Close the music directory
 		closedir(dir);
 	}
-	else 
+	else
 	{
 		// Directory not found
 		return false;
@@ -317,7 +318,7 @@ void sendCurrentSong(int song)
 
 	// Loop through all clients in the connected client list
 
-	
+
 }
 
 
@@ -381,7 +382,7 @@ void thread_runserver()
 {
 	while (Server::isAlive())
 	{
-		Server::acceptConnection();
+		Server::acceptConnection(listeningSocket);
 	}
 }
 
