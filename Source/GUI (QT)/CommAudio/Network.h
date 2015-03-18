@@ -3,10 +3,10 @@
 
 
 /* The size of a data message */
-#define MESSAGE_SIZE 1024
+#define MESSAGE_SIZE 512
 
 /* The size of the circular sound buffer */
-#define BUFFER_SIZE 1024 * 10
+#define BUFFER_SIZE (MESSAGE_SIZE * 10)
 
 
 /* An enum representing all possible server modes */
@@ -25,6 +25,9 @@ struct ClientState
 typedef struct ClientState ClientState;
 
 
+void streamMusic(ClientState *cData);
 void connectMusic(ClientState *cData);
+
+void addToMusicBuffer(char *buffer, int bufferSize);
 
 #endif
