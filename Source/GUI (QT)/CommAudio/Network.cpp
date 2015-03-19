@@ -32,6 +32,9 @@ SOCKET controlSocket;
 char musicBuffer[BUFFER_SIZE];
 
 // Unicast Variables
+SOCKET unicastStreamSocket;
+SOCKADDR_IN unicastStreamInfo;
+SOCKADDR_IN unicastServerInfo;
 
 // Multicast Variables
 SOCKET multicastSocket;
@@ -83,7 +86,7 @@ void connectMusic(ClientState *cData)
     // Open the multicast socket
     if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
-        // The socket failed to br created
+        // The socket failed to be created
         cerr << "Failed to create multicast socket." << endl;
         WSACleanup();
         exit(1);
@@ -137,3 +140,94 @@ void connectMusic(ClientState *cData)
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: streamMusic
+--
+-- DATE: March 18, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void streamMusic(ClientState *cData);
+--
+-- PARAMETERS:
+--      cData - the struct containing the client state info
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function begins listening for a Unicast music stream from the
+--     server and plays it.
+----------------------------------------------------------------------------------------------------------------------*/
+void streamMusic(ClientState *cData)
+{
+    // Open a UDP listener
+    if ((unicastStreamSocket = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
+    {
+        // The socket failed to be created
+        cerr << "Failed to create unicast socket." << endl;
+        WSACleanup();
+        exit(1);
+    }
+
+    // Bind the UDP listener
+    unicastStreamInfo.sin_family = AF_INET;
+    unicastStreamInfo.sin_port = htons(cData->port + 1);
+    unicastStreamInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(unicastStreamSocket, (struct sockaddr *) &unicastStreamInfo, sizeof(unicastStreamInfo)) == -1)
+    {
+        // The socket failed to be bound
+        cerr << "Failed to bind unicast socket." << endl;
+        WSACleanup();
+        exit(1);
+    }
+
+    // While we are still connected
+    while(cData->connected)
+    {
+        int serverInfoSize = sizeof(unicastServerInfo);
+        char buffer[MESSAGE_SIZE];
+        if (recvfrom(unicastStreamSocket, buffer, MESSAGE_SIZE, 0,(struct sockaddr *) &unicastServerInfo, &serverInfoSize) < 0)
+        {
+            // The socket data failed to be read
+            cerr << "Failed to read from unicast socket." << endl;
+            WSACleanup();
+            exit(1);
+        }
+    }
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: addToMusicBuffer
+--
+-- DATE: March 18, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void addToMusicBuffer(char *buffer, int bufferSize);
+--
+-- PARAMETERS:
+--      buffer - the data to add
+--      bufferSize - the amount of data to add
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function adds music to the music stream buffer.
+----------------------------------------------------------------------------------------------------------------------*/
+void addToMusicBuffer(char *buffer, int bufferSize)
+{
+    for (int i = 0; i < bufferSize; i++)
+    {
+        //musicBuffer[]
+    }
+}
