@@ -19,6 +19,8 @@ struct Client
 	SOCKET_INFORMATION socketinfo;
 };
 
+bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port);
+
 namespace Server
 {
 	void start();

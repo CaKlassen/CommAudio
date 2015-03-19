@@ -46,7 +46,6 @@ bool done = false;
 // Socket variables
 WSADATA wsaData;
 
-
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: main
 --
@@ -136,7 +135,6 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: loadTracklist
 --
@@ -199,7 +197,6 @@ bool loadTracklist(vector<string> *tlist, string location)
 
 	return true;
 }
-
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: startMulticast
@@ -266,7 +263,7 @@ bool playMulticast()
 		// Open the song file
 
 		// Start the Send Current Song thread
-		std::thread tCurrentSong(sendCurrentSong, randSong);
+		std::thread tCurrentSong(sendCurrentSongMulti, randSong);
 		tCurrentSong.detach();
 
 		// While we are not done and there is data left to send
@@ -289,9 +286,8 @@ bool playMulticast()
 	return true;
 }
 
-
 /*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: sendCurrentSong
+-- FUNCTION: sendCurrentSongMulti
 --
 -- DATE: March 14, 2015
 --
@@ -301,7 +297,7 @@ bool playMulticast()
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: sendCurrentSong(int song);
+-- INTERFACE: sendCurrentSongMulti(int song);
 --
 -- PARAMETERS:
 --		song - the song number in the tracklist to send
@@ -311,7 +307,7 @@ bool playMulticast()
 -- NOTES:
 --     This function sends the current song to all connected clients.
 ----------------------------------------------------------------------------------------------------------------------*/
-void sendCurrentSong(int song)
+void sendCurrentSongMulti(int song)
 {
 	CMessage cMsg;
 	cMsg.msgType = NOW_PLAYING;
@@ -320,7 +316,6 @@ void sendCurrentSong(int song)
 
 
 }
-
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: sendUnicast
@@ -346,9 +341,21 @@ void sendCurrentSong(int song)
 ----------------------------------------------------------------------------------------------------------------------*/
 void playUnicast(string ip, string song)
 {
-
+	sockaddr_in sin;
+	if (createSockAddrIn(sin, ip, port + 1))
+	{
+		std::thread t_sendCurrentSongUni(sendCurrentSongUni, song);
+		t_sendCurrentSongUni.detach();
+	}
 }
 
+void sendCurrentSongUni(string song)
+{
+	CMessage cMsg;
+	cMsg.msgType = NOW_PLAYING;
+
+
+}
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: saveUnicast
@@ -377,7 +384,6 @@ void saveUnicast(string ip, string song)
 
 }
 
-
 void thread_runserver()
 {
 	while (Server::isAlive())
@@ -385,7 +391,6 @@ void thread_runserver()
 		Server::acceptConnection(listeningSocket);
 	}
 }
-
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: startUnicast

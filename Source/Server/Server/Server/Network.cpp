@@ -24,10 +24,34 @@
 
 using namespace std;
 
+/// FUNCTION PROTOTYPES
+
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+
+/// VARIABLES
 
 vector<Client*> clients;
 bool isAlive = false;
+
+/// GENERAL STUFF
+
+bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port)
+{
+	sin = {};
+	sin.sin_family = AF_INET;   // Specify the Internet (TCP/IP) Address family
+	sin.sin_port = htons(port); // Convert to network byte order
+
+	// Ensure that the IP string is a legitimate address (dotted decimal)
+	if ((sin.sin_addr.s_addr = inet_addr(ip.c_str())) == INADDR_NONE)
+	{
+		cerr << "Invalid IP address" << endl;
+		return false;
+	}
+
+	return true;
+}
+
+/// SERVER STUFF
 
 void Server::start()
 {

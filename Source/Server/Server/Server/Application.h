@@ -15,9 +15,11 @@ bool startMulticast();
 bool startUnicast();
 
 bool playMulticast();
-void sendCurrentSong(int song);
+void sendCurrentSongMulti(int song);
 
 void playUnicast(std::string ip, std::string song);
+void sendCurrentSongUni(std::string song);
+
 void saveUnicast(std::string ip, std::string song);
 
 #endif
