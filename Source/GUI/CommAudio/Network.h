@@ -1,6 +1,7 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 
+#include <string>
 
 /* The size of a data message */
 #define MESSAGE_SIZE 512
