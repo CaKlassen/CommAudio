@@ -37,6 +37,10 @@ vector<string> tracklist;
 
 ClientState cData;
 
+QString IP = "default";
+QString filePath = "c/";
+int port = 4985;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -50,6 +54,9 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.connected = false;
     cData.sMode = NOTHING;
 
+    ui->lineEdit->setText(IP);
+    ui->lineEdit_2->setText(QString::number(port));
+    ui->lineEdit_3->setText(filePath);
 
     /* Populates the list widget  */
     for(int i= 1; i < 10; i++)
@@ -169,5 +176,68 @@ void MainWindow::setTracklist(vector<string> *songs)
         // Update the tracklist GUI component
         ui->listWidget->addItem(QString::fromStdString(songs->at(i)));
     }
+
+}
+
+
+
+void MainWindow::on_actionDisconnect_triggered()
+{
+    //once disconnected all tabs are available again
+    for (int n = 0; n < ui->tabWidget->count(); n++)
+    {
+            ui->tabWidget->setTabEnabled(n, true);
+    }
+}
+
+void MainWindow::on_actionConnect_triggered()
+{
+    int mode = ui->tabWidget->currentIndex();
+
+    //make sure connect does not work on the configuration
+    if (ui->tabWidget->tabText(mode) != "Config.")
+    {
+        //check if its unicast
+        if (cData.sMode == UNICAST && (mode==0 || mode==1))
+        {
+            for (int n = 0; n < ui->tabWidget->count(); n++)
+            {
+                if (n != 1)
+                    ui->tabWidget->setTabEnabled(n, false);
+            }
+        }
+        //check if it is multicast
+        else if (cData.sMode == MULTICAST && (mode==0 || mode==1))
+        {
+            for (int n = 0; n < ui->tabWidget->count(); n++)
+            {
+                if (n != 0)
+                    ui->tabWidget->setTabEnabled(n, false);
+            }
+        }
+        //if its neither multicast or unicast
+        else
+        {
+            for (int n = 0; n < ui->tabWidget->count(); n++)
+            {
+                if (n != mode)
+                    ui->tabWidget->setTabEnabled(n, false);
+            }
+        }
+    }
+}
+
+void MainWindow::on_pushButton_6_clicked()
+{
+    IP = ui->lineEdit->text();
+    port = ui->lineEdit_2->text().toInt();
+    filePath = ui->lineEdit_3->text();
+}
+
+void MainWindow::on_pushButton_7_clicked()
+{
+    ui->lineEdit->setText(IP);
+    ui->lineEdit_2->setText(QString::number(port));
+    ui->lineEdit_3->setText(filePath);
 
 }

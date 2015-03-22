@@ -12,14 +12,14 @@ struct SOCKET_INFORMATION
 	SOCKET socket;
 	CHAR buffer[DATA_BUFSIZE];
 	WSABUF dataBuf;
-	DWORD bytesSend;
-	DWORD bytesRecv;
 };
 
 struct Client
 {
 	SOCKET_INFORMATION socketinfo;
 };
+
+bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port);
 
 namespace Server
 {
@@ -30,7 +30,7 @@ namespace Server
 	bool acceptConnection(SOCKET listenSocket);
 	Client* createClient();
 	bool recv(Client* c);
-	bool send(Client* c, std::string msg);
+	bool send(Client* c, std::string msg, sockaddr_in* sin = nullptr);
 	void disconnectClient(std::string ip);
 }
 
