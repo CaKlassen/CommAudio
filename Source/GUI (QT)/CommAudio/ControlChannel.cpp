@@ -1,7 +1,7 @@
 /*------------------------------------------------------------------------------------------------------------------
 -- SOURCE FILE: ControlChannel.cpp - a collection of functions used to handle server-client control messages.
 --
--- PROGRAM: Server.exe
+-- PROGRAM: 
 --
 -- FUNCTIONS:
 --
@@ -23,8 +23,6 @@
 #include <cstdlib>
 #include <sstream>
 #include "ControlChannel.h"
-#include "Application.h"
-#include "Network.h"
 
 using std::stringstream;
 
@@ -40,7 +38,7 @@ using std::stringstream;
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: void createControlString(CMessage &cMsg, string &str);
+-- INTERFACE: void createControlString(CMessage *cMsg, string *str);
 --
 -- PARAMETERS:
 --     cMsg - the Control Message to create the string from
@@ -51,18 +49,18 @@ using std::stringstream;
 -- NOTES:
 --     This function creates a control string from a Control Message.
 ----------------------------------------------------------------------------------------------------------------------*/
-void createControlString(CMessage &cMsg, string &str)
+void createControlString(CMessage *cMsg, string *str)
 {
 	stringstream ss;
-	ss << cMsg.msgType << "~";
+	ss << cMsg->msgType << "~";
 
 	// Loop through all strings in the message data array
-	for (int i = 0; i < (int)cMsg.msgData.size(); i++)
+	for (int i = 0; i < (int) cMsg->msgData.size(); i++)
 	{
-		ss << cMsg.msgData[i] << "`";
+		ss << cMsg->msgData[i] << "`";
 	}
 
-	str = ss.str();
+	*str = ss.str();
 }
 
 
@@ -93,11 +91,11 @@ void parseControlString(string str, CMessage *cMsg)
 	// Parse the message type
 	int typeEnd = str.find('~');
 	cMsg->msgType = static_cast<MessageType> (atoi(str.substr(0, typeEnd).c_str()));
-
+	
 	str = str.substr(typeEnd + 1, str.length());
 
 	// Parse the message data
-	while (str.length() > 0)
+	while(str.length() > 0)
 	{
 		int dataEnd = str.find('`');
 		cMsg->msgData.emplace_back(str.substr(0, dataEnd));
@@ -131,29 +129,42 @@ void parseControlString(string str, CMessage *cMsg)
 void handleControlMessage(CMessage *cMsg)
 {
 	// Switch on the message's type
-	switch (cMsg->msgType)
+	switch(cMsg->msgType)
 	{
-		case END_CONNECTION:
+		case START_CONNECTION:
 		{
-			// Client disconnecting
-			Server::disconnectClient(cMsg->msgData[0]);
+            // Determine the current server mode
 			break;
 		}
 
-		case PLAY_SONG:
-		{
-			// Client requesting song over UDP
-			playUnicast(cMsg->msgData[0], cMsg->msgData[1]);
+        case END_CONNECTION:
+        {
+            // The server is shutting down
+            break;
+        }
 
-			break;
-		}
+        case TRACK_LIST:
+        {
+            // The server's current tracklist
+            break;
+        }
 
-		case SAVE_SONG:
-		{
-			// Client requesting song over TCP
-			saveUnicast(cMsg->msgData[0], cMsg->msgData[1]);
+        case NOW_PLAYING:
+        {
+            // The currently playing multicast song
+            break;
+        }
 
-			break;
-		}
+        case SONG_PIECE:
+        {
+            // A piece of a song to save to a file
+            break;
+        }
+
+        case END_SONG:
+        {
+            // The currently playing song has ended
+            break;
+        }
 	}
 }

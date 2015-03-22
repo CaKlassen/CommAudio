@@ -1,7 +1,42 @@
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: mainwindow.cpp - This file handles all GUI interaction.
+--
+-- PROGRAM: CommAudio.exe
+--
+-- FUNCTIONS:
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Jonathan Chu
+--           Chris Klassen
+--
+-- PROGRAMMER: Jonathan Chu
+--             Chris Klassen
+--
+-- NOTES:
+--      This file contains functionality to handle GUI interaction and display.
+----------------------------------------------------------------------------------------------------------------------*/
+
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QSlider>
+#include <vector>
+#include "Network.h"
+
+using std::string;
+using std::vector;
+
+// Client variables
+string currentSong;
+int songLength;
+vector<string> tracklist;
+
+ClientState cData;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -9,7 +44,11 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-
+    // Set up the client data structure
+    cData.ip = "127.0.0.1";
+    cData.port = 0;
+    cData.connected = false;
+    cData.sMode = NOTHING;
 
 
     /* Populates the list widget  */
@@ -58,7 +97,6 @@ void MainWindow::on_pushButton_2_clicked()
 
 
 
-
 /* This is for the microphone button  */
 
 bool MicOn = true;
@@ -94,4 +132,42 @@ void MainWindow::on_pushButton_5_clicked()
     QMessageBox pop;
     pop.setText("Display the volume");
     pop.exec();
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: setTracklist
+--
+-- DATE: March 18, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void setTracklist(vector<string> *songs);
+--
+-- PARAMETERS:
+--      songs - the list of songs from the server
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function updates the current tracklist from the server.
+----------------------------------------------------------------------------------------------------------------------*/
+void MainWindow::setTracklist(vector<string> *songs)
+{
+    tracklist.clear();
+    ui->listWidget->clear();
+
+    // Loop through and add each new song to the tracklist
+    for (int i = 0; i < (int) songs->size(); i++)
+    {
+        tracklist.emplace_back(songs->at(i));
+
+        // Update the tracklist GUI component
+        ui->listWidget->addItem(QString::fromStdString(songs->at(i)));
+    }
+
 }
