@@ -24,11 +24,34 @@
 
 using namespace std;
 
-void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
-void CALLBACK onSend(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+/// FUNCTION PROTOTYPES
+
+void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+
+/// VARIABLES
 
 vector<Client*> clients;
 bool isAlive = false;
+
+/// GENERAL STUFF
+
+bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port)
+{
+	sin = {};
+	sin.sin_family = AF_INET;   // Specify the Internet (TCP/IP) Address family
+	sin.sin_port = htons(port); // Convert to network byte order
+
+	// Ensure that the IP string is a legitimate address (dotted decimal)
+	if ((sin.sin_addr.s_addr = inet_addr(ip.c_str())) == INADDR_NONE)
+	{
+		cerr << "Invalid IP address" << endl;
+		return false;
+	}
+
+	return true;
+}
+
+/// SERVER STUFF
 
 void Server::start()
 {
@@ -129,7 +152,11 @@ bool Server::acceptConnection(SOCKET listenSocket)
 
 	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
 
-	return send(c, startConnMsg);
+	bool success = send(c, startConnMsg);
+
+	recv(c); // start the recursion
+
+	return success;
 }
 
 Client* Server::createClient()
@@ -141,15 +168,15 @@ Client* Server::createClient()
 bool Server::recv(Client* c)
 {
 	DWORD bytesReceived = 0;
-	DWORD Flags = 0;
+	DWORD flags = 0;
 
 	c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
 	if (WSARecv(c->socketinfo.socket,
-		&(c->socketinfo.dataBuf), 1, &bytesReceived, &Flags,
-		&(c->socketinfo.overlapped), onReceive
+		&(c->socketinfo.dataBuf), 1, &bytesReceived, &flags,
+		&(c->socketinfo.overlapped), onRecv
 		) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
@@ -162,7 +189,7 @@ bool Server::recv(Client* c)
 	return true;
 }
 
-bool Server::send(Client* c, std::string msg)
+bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 {
 	DWORD bytesSent = 0;
 
@@ -171,15 +198,33 @@ bool Server::send(Client* c, std::string msg)
 	msg.copy(c->socketinfo.buffer, DATA_BUFSIZE);
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
-	if (WSASend(c->socketinfo.socket,
-		&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
-		&(c->socketinfo.overlapped), onSend
-		) == SOCKET_ERROR)
+	if (sin)
 	{
-		if (WSAGetLastError() != WSA_IO_PENDING)
+		if (WSASendTo(c->socketinfo.socket,
+			&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
+			(sockaddr*)sin, sizeof(*sin),
+			&(c->socketinfo.overlapped), NULL
+			) == SOCKET_ERROR)
 		{
-			cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
-			return false;
+			if (WSAGetLastError() != WSA_IO_PENDING)
+			{
+				cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
+				return false;
+			}
+		}
+	}
+	else
+	{
+		if (WSASend(c->socketinfo.socket,
+			&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
+			&(c->socketinfo.overlapped), NULL
+			) == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() != WSA_IO_PENDING)
+			{
+				cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
+				return false;
+			}
 		}
 	}
 
@@ -214,10 +259,10 @@ void Server::disconnectClient(string ip)
 	// Remove the client from the list of clients
 }
 
-void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
+void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
 	DWORD RecvBytes;
-	DWORD Flags;
+	DWORD flags;
 	CMessage cm;
 
 	Client* C = (Client*)overlapped;
@@ -243,34 +288,6 @@ void CALLBACK onReceive(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED ove
 	handleControlMessage(&cm);
 
 	cout << "Received \"" << C->socketinfo.buffer << "\"" << endl;
-
-	Server::recv(C);
-}
-
-void CALLBACK onSend(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
-{
-	DWORD SendBytes;
-
-	Client* C = (Client*)overlapped;
-
-	if (error != 0)
-	{
-		cerr << "I/O operation failed. Error " << error << endl;
-	}
-
-	if (bytesTransferred == 0)
-	{
-		cout << "Closing socket " << C->socketinfo.socket << endl;
-	}
-
-	if (error != 0 || bytesTransferred == 0)
-	{
-		closesocket(C->socketinfo.socket);
-		delete C;
-		return;
-	}
-
-	cout << "Sent \"" << C->socketinfo.buffer << "\"" << endl;
 
 	Server::recv(C);
 }
