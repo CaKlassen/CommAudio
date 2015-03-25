@@ -7,14 +7,13 @@ class MusicBuffer
 {
     public:
         MusicBuffer();
-        char get();
+        char* getBuffer();
         void put(char *data, int dataSize);
-        int getCurrentPosition();
+		int size();
         int getEndPosition();
         void clear();
     private:
         char buffer[BUFFER_SIZE];
-        int curPosition;
         int endPosition;
 };
 

@@ -43,14 +43,14 @@
 ----------------------------------------------------------------------------------------------------------------------*/
 MusicBuffer::MusicBuffer()
 {
-    curPosition = 0;
+    endPosition = 0;
 }
 
 
 /*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: get
+-- FUNCTION: getBuffer
 --
--- DATE: March 18, 2015
+-- DATE: March 24, 2015
 --
 -- REVISIONS: (Date and Description)
 --
@@ -58,28 +58,18 @@ MusicBuffer::MusicBuffer()
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: char get();
+-- INTERFACE: char* getBuffer();
 --
 -- PARAMETERS:
 --
--- RETURNS: char - the next char in the buffer
+-- RETURNS: char* - the music buffer to retrieve
 --
 -- NOTES:
---     This function is responsible for initiating the connection process when
---     the connect button is pressed on the Music tab.
+--     This function returns the music buffer.
 ----------------------------------------------------------------------------------------------------------------------*/
-char MusicBuffer::get()
-{   
-    if (curPosition == BUFFER_SIZE - 1)
-    {
-        curPosition = 0;
-        return buffer[BUFFER_SIZE - 1];
-    }
-    else
-    {
-        curPosition++;
-        return buffer[curPosition - 1];
-    }
+char* MusicBuffer::getBuffer()
+{
+	return buffer;
 }
 
 
@@ -125,9 +115,9 @@ void MusicBuffer::put(char *data, int dataSize)
 
 
 /*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: getCurrentPosition
+-- FUNCTION: size
 --
--- DATE: March 18, 2015
+-- DATE: March 24, 2015
 --
 -- REVISIONS: (Date and Description)
 --
@@ -135,18 +125,29 @@ void MusicBuffer::put(char *data, int dataSize)
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: int getCurrentPosition();
+-- INTERFACE: int size();
 --
 -- PARAMETERS:
 --
--- RETURNS: int - the current reading position in the buffer.
+-- RETURNS: int - the current size of the buffer
 --
 -- NOTES:
---     This function returns the current reading position in the buffer.
+--     This function returns the size of the circular buffer.
 ----------------------------------------------------------------------------------------------------------------------*/
-int MusicBuffer::getCurrentPosition()
+int MusicBuffer::size()
 {
-    return curPosition;
+	/*
+	if (endPosition < curPosition)
+	{
+		// Our end has wrapped around and our current position has not
+		return (BUFFER_SIZE - curPosition + endPosition);
+	}
+	else
+	{
+		return endPosition - curPosition;
+	}
+	*/
+	return 1;
 }
 
 
@@ -203,7 +204,6 @@ void MusicBuffer::clear()
         buffer[i] = '\0';
     }
     
-    curPosition = 0;
     endPosition = 0;
 }
     
