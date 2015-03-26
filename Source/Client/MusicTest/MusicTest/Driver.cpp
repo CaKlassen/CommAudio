@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <Windows.h>
 #include <mmsystem.h>
+#include <vlc/vlc.h>
 #include <vlc/libvlc.h>
 
 #include "Music.h"
@@ -9,6 +10,9 @@
 
 /* Test reading and output thread */
 DWORD WINAPI readDataThread(LPVOID lpArg);
+void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size); 
+void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels, 
+				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts);
 
 using std::cout;
 using std::cerr;
@@ -25,24 +29,46 @@ int main(void)
 	int bufferLength;
 	WAVEFORMATEX format;
 
-	// Load the data from a wav file
-	if (!loadFile("test.wav", &buffer, &bufferLength, &format))
+	// Create VLC objects
+	libvlc_instance_t *inst;
+	libvlc_media_player_t *mediaPlayer;
+    char smem_options[256];
+
+	sprintf(smem_options, "#transcode{acodec=s16l}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}",
+                (long long int)(intptr_t)(void*) &handleStream, (long long int)(intptr_t)(void*) &prepareRender);
+                
+	const char* const vlc_args[] = { "-I", "dummy", "--verbose=0", "--sout", smem_options };
+	
+	inst = libvlc_new(sizeof(vlc_args) / sizeof(vlc_args[0]), vlc_args);
+	if (inst == NULL)
 	{
-		cerr << "Failed to load wav file." << endl;
-		return 1;
+		cerr << "Failed to create libvlc instance." << endl;
+		exit (1);
+	}
+	
+	// Load the media
+	libvlc_media_t *media = libvlc_media_new_path(inst, "test.wav");
+
+	if (media == NULL)
+	{
+		cerr << "Failed to load music." << endl;
+		exit(1);
 	}
 
-	/* Create the output thread */
+	mediaPlayer = libvlc_media_player_new_from_media(media);
+
+	// Play the audio
+	libvlc_media_release(media);
+	libvlc_media_player_play(mediaPlayer);
+
+	// Create the output thread
 	CreateThread(NULL, 0, readDataThread, NULL, 0, NULL);
-
-	/* Loop until the song is done being put into the buffer */
-	while (true)
-	{
-		
-	}
 
 	/* Wait for user input before exiting */
 	getchar();
+	
+	libvlc_media_player_release(mediaPlayer);
+    libvlc_release(inst);
 
 	return 0;
 }
@@ -56,9 +82,11 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 {
 	WAVEFORMATEX temp;
 	LPWAVEHDR waveHeader;
+	LPWAVEHDR waveHeader2;
+	LPWAVEHDR waveHeader3;
 
 	// Set up the wave format
-	temp.nSamplesPerSec = 44100;
+	temp.nSamplesPerSec = 48000;
 	temp.wBitsPerSample = 16;
 	temp.nChannels = 2;
 	temp.cbSize = 0;
@@ -76,18 +104,37 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 	// Prepare the wave header
 	waveHeader = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
 	ZeroMemory(waveHeader, sizeof(WAVEHDR));
+	waveHeader2 = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
+	ZeroMemory(waveHeader2, sizeof(WAVEHDR));
+	waveHeader3 = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
+	ZeroMemory(waveHeader3, sizeof(WAVEHDR));
+
 	waveHeader->lpData = mBuffer.getBuffer();
 	waveHeader->dwBufferLength = BUFFER_SIZE;
+	waveHeader2->lpData = mBuffer.getBuffer();
+	waveHeader2->dwBufferLength = BUFFER_SIZE;
+	waveHeader3->lpData = mBuffer.getBuffer();
+	waveHeader3->dwBufferLength = BUFFER_SIZE;
 
 	// Create the wave out header
-	if (waveOutPrepareHeader(outputDevice, waveHeader, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+	if (waveOutPrepareHeader(outputDevice, waveHeader, sizeof(WAVEHDR)) != MMSYSERR_NOERROR ||
+		waveOutPrepareHeader(outputDevice, waveHeader2, sizeof(WAVEHDR)) != MMSYSERR_NOERROR ||
+		waveOutPrepareHeader(outputDevice, waveHeader3, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
 	{
 		cerr << "Failed to create data header." << endl;
 		return 1;
 	}
 
 	// Play audio
+	while (!mBuffer.ready())
+	{
+		// Wait for data
+	}
+
+	cout << "Ready to play music" << endl;
 	waveOutWrite(outputDevice, waveHeader, sizeof(WAVEHDR));
+	waveOutWrite(outputDevice, waveHeader2, sizeof(WAVEHDR));
+	waveOutWrite(outputDevice, waveHeader3, sizeof(WAVEHDR));
 }
 
 
@@ -127,4 +174,48 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
 			exit(1);
 		}
 	}
+}
+
+
+void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size)
+{
+	*pp_pcm_buffer = (uint8_t*) malloc(size);
+	SecureZeroMemory(*pp_pcm_buffer, size);
+}
+
+
+void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels, 
+				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts )
+{
+	char *buffer;
+	int dataSize = size;
+	int messageSize;
+	int dataSent = 0;
+
+	// While we have data to write
+	while (dataSize > 0)
+	{
+		Sleep(1);
+		// Set the size of the next message to send
+		if (dataSize > MESSAGE_SIZE)
+		{
+			messageSize = MESSAGE_SIZE;
+		}
+		else
+		{
+			messageSize = dataSize;
+		}
+		
+		buffer = new char[dataSize];
+		memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
+		
+		// TEMP - put data into the buffer
+		mBuffer.put(buffer, messageSize);
+		dataSize -= messageSize;
+		dataSent += messageSize;
+
+		delete [] buffer;
+	}
+
+	free(p_pcm_buffer);
 }

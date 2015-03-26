@@ -125,29 +125,23 @@ void MusicBuffer::put(char *data, int dataSize)
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: int size();
+-- INTERFACE: bool ready();
 --
 -- PARAMETERS:
 --
--- RETURNS: int - the current size of the buffer
+-- RETURNS: bool - whether or not the buffer is ready to start streaming
 --
 -- NOTES:
---     This function returns the size of the circular buffer.
+--     This function returns the ready state of the buffer.
 ----------------------------------------------------------------------------------------------------------------------*/
-int MusicBuffer::size()
+bool MusicBuffer::ready()
 {
-	/*
-	if (endPosition < curPosition)
+	if (endPosition >= MESSAGE_SIZE * 2)
 	{
-		// Our end has wrapped around and our current position has not
-		return (BUFFER_SIZE - curPosition + endPosition);
+		return true;
 	}
-	else
-	{
-		return endPosition - curPosition;
-	}
-	*/
-	return 1;
+
+	return false;
 }
 
 

@@ -1,7 +1,8 @@
 #ifndef MUSIC_BUFFER_H_
 #define MUSIC_BUFFER_H_
 
-#define BUFFER_SIZE 1024
+#define MESSAGE_SIZE 512
+#define BUFFER_SIZE (MESSAGE_SIZE * 10)
 
 class MusicBuffer
 {
@@ -9,7 +10,7 @@ class MusicBuffer
         MusicBuffer();
         char* getBuffer();
         void put(char *data, int dataSize);
-		int size();
+		bool ready();
         int getEndPosition();
         void clear();
     private:
