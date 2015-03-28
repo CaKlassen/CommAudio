@@ -17,7 +17,6 @@
 --      This file contains the implementation of the MusicBuffer class.
 ----------------------------------------------------------------------------------------------------------------------*/
 
-
 #include "MusicBuffer.h"
 
 
@@ -136,7 +135,7 @@ void MusicBuffer::put(char *data, int dataSize)
 ----------------------------------------------------------------------------------------------------------------------*/
 bool MusicBuffer::ready()
 {
-	if (endPosition >= MESSAGE_SIZE * 10)
+	if (endPosition >= MESSAGE_SIZE * 2)
 	{
 		return true;
 	}

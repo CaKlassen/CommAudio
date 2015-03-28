@@ -5,11 +5,11 @@
 #include <vlc/vlc.h>
 #include <vlc/libvlc.h>
 
-#include "Music.h"
 #include "MusicBuffer.h"
 
-/* Test reading and output thread */
+// Prototypes 
 DWORD WINAPI readDataThread(LPVOID lpArg);
+void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
 void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size); 
 void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels, 
 				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts);
@@ -19,36 +19,32 @@ using std::cerr;
 using std::endl;
 using std::string;
 
-/* Driver variables */
+// Driver variables
 HWAVEOUT outputDevice;
-char *mBuffer;
-int mPos;
+MusicBuffer mBuffer;
+
 
 int main(void)
 {
-	mBuffer = new char[BUFFER_SIZE];
-	ZeroMemory(mBuffer, BUFFER_SIZE);
-	mPos = 0;
-
 	// Create VLC objects
 	libvlc_instance_t *inst;
 	libvlc_media_player_t *mediaPlayer;
     char smem_options[256];
 
-	sprintf(smem_options, "#transcode{acodec=s16l,samplerate=44100,channels=2}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}",
-                (long long int)(intptr_t)(void*) &handleStream, (long long int)(intptr_t)(void*) &prepareRender);
-                
+	// Write the command line string to the char array
+	sprintf(smem_options, VLC_OPTIONS, (long long int)(intptr_t)(void*) &handleStream, (long long int)(intptr_t)(void*) &prepareRender);
+
 	const char* const vlc_args[] = { "-I", "dummy", "--verbose=0", "--sout", smem_options };
-	
-	inst = libvlc_new(sizeof(vlc_args) / sizeof(vlc_args[0]), vlc_args);
-	if (inst == NULL)
+
+	// Create an instance of libvlc
+	if ((inst = libvlc_new(sizeof(vlc_args) / sizeof(vlc_args[0]), vlc_args)) == NULL)
 	{
 		cerr << "Failed to create libvlc instance." << endl;
 		exit (1);
 	}
 	
 	// Load the media
-	libvlc_media_t *media = libvlc_media_new_path(inst, "test5.wav");
+	libvlc_media_t *media = libvlc_media_new_path(inst, "test8.mp3");
 
 	if (media == NULL)
 	{
@@ -56,6 +52,7 @@ int main(void)
 		exit(1);
 	}
 
+	// Create the media player
 	mediaPlayer = libvlc_media_player_new_from_media(media);
 
 	// Play the audio
@@ -65,13 +62,11 @@ int main(void)
 	// Create the output thread
 	CreateThread(NULL, 0, readDataThread, NULL, 0, NULL);
 
-	/* Wait for user input before exiting */
+	// Wait for user input before exiting
 	getchar();
 	
 	libvlc_media_player_release(mediaPlayer);
     libvlc_release(inst);
-
-	free(mBuffer);
 
 	return 0;
 }
@@ -83,55 +78,50 @@ int main(void)
 */
 DWORD WINAPI readDataThread(LPVOID lpArg)
 {
-	WAVEFORMATEX temp;
-	LPWAVEHDR waveHeader;
-	LPWAVEHDR waveHeader2;
-	LPWAVEHDR waveHeader3;
+	WAVEFORMATEX format;
+
+	LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
 	// Set up the wave format
-	temp.nSamplesPerSec = 44100;
-	temp.wBitsPerSample = 16;
-	temp.nChannels = 2;
-	temp.cbSize = 0;
-	temp.wFormatTag = WAVE_FORMAT_PCM;
-	temp.nBlockAlign = temp.nChannels * (temp.wBitsPerSample / 8);
-	temp.nAvgBytesPerSec = temp.nSamplesPerSec * temp.wBitsPerSample;
+	format.nSamplesPerSec = 44100;
+	format.wBitsPerSample = 16;
+	format.nChannels = 2;
+	format.cbSize = 0;
+	format.wFormatTag = WAVE_FORMAT_PCM;
+	format.nBlockAlign = format.nChannels * (format.wBitsPerSample / 8);
+	format.nAvgBytesPerSec = format.nSamplesPerSec * format.wBitsPerSample;
 
 	// Open the output device
-	if (waveOutOpen(&outputDevice, WAVE_MAPPER, &temp, (DWORD) WaveCallback, NULL, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
+	if (waveOutOpen(&outputDevice, WAVE_MAPPER, &format, (DWORD) WaveCallback, NULL, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
 	{
 		cerr << "Failed to open output device." << endl;
 		return 1;
 	}
 
-	// Prepare the wave header
-	waveHeader = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
-	ZeroMemory(waveHeader, sizeof(WAVEHDR));
-	waveHeader2 = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
-	ZeroMemory(waveHeader2, sizeof(WAVEHDR));
-	waveHeader3 = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
-	ZeroMemory(waveHeader3, sizeof(WAVEHDR));
-
-	waveHeader->lpData = mBuffer;
-	waveHeader->dwBufferLength = BUFFER_SIZE;
-	waveHeader2->lpData = mBuffer;
-	waveHeader2->dwBufferLength = BUFFER_SIZE;
-	waveHeader3->lpData = mBuffer;
-	waveHeader3->dwBufferLength = BUFFER_SIZE;
-
-	// Create the wave out header
-	if (waveOutPrepareHeader(outputDevice, waveHeader, sizeof(WAVEHDR)) != MMSYSERR_NOERROR ||
-		waveOutPrepareHeader(outputDevice, waveHeader2, sizeof(WAVEHDR)) != MMSYSERR_NOERROR ||
-		waveOutPrepareHeader(outputDevice, waveHeader3, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+	// Prepare the wave headers
+	for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
 	{
-		cerr << "Failed to create data header." << endl;
-		return 1;
+		audioBuffers[i] = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
+		ZeroMemory(audioBuffers[i], sizeof(WAVEHDR));
+
+		audioBuffers[i]->lpData = mBuffer.getBuffer();
+		audioBuffers[i]->dwBufferLength = BUFFER_SIZE;
+
+		// Create the header
+		if (waveOutPrepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+		{
+			cerr << "Failed to create output header." << endl;
+			exit(1);
+		}
 	}
 
+	// Write audio to the buffer
 	cout << "Ready to play music" << endl;
-	waveOutWrite(outputDevice, waveHeader, sizeof(WAVEHDR));
-	waveOutWrite(outputDevice, waveHeader2, sizeof(WAVEHDR));
-	waveOutWrite(outputDevice, waveHeader3, sizeof(WAVEHDR));
+	
+	for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+	{
+		waveOutWrite(outputDevice, audioBuffers[i], sizeof(WAVEHDR));
+	}
 }
 
 
@@ -163,7 +153,6 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 ----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-	cout << "Done callback" << endl;
 	if (uMsg == WOM_DONE)
 	{
 		if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
@@ -175,23 +164,76 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: prepareRender
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size);
+--
+-- PARAMETERS:
+--		p_audio_data - not used
+--		pp_pcm_buffer - a pointer to the location of the audio stream
+--		size - the size of the required buffer
+--		
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is called before audio is streamed to allocate memory for the buffer.
+----------------------------------------------------------------------------------------------------------------------*/
 void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size)
 {
+	// Allocate memory to the buffer
 	*pp_pcm_buffer = (uint8_t*) malloc(size);
-	SecureZeroMemory(*pp_pcm_buffer, size);
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: handleStream
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels, 
+--				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts )
+--
+-- PARAMETERS:
+--		p_audio_data - not used
+--		p_pcm_buffer - a pointer to the location of the stream buffer
+--		channels - the number of channels used
+--		rate - the bitrate of the audio
+--		nb_samples - the number of samples per second for the audio
+--		bits_per_sample - the number of bits per audio sample (bit depth)
+--		size - the length of the buffer
+--		pts - not used
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is called after audio is streamed and is used to write data to the buffer.
+----------------------------------------------------------------------------------------------------------------------*/
 void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels, 
 				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts )
 {
-	//char *buffer;
+	char *buffer;
 	int dataSize = size;
-	//int messageSize;
-	//int dataSent = 0;
+	int messageSize;
+	int dataSent = 0;
 
 	// While we have data to write
-	/*while (dataSize > 0)
+	while (dataSize > 0)
 	{
 		// Set the size of the next message to send
 		if (dataSize > MESSAGE_SIZE)
@@ -202,35 +244,18 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 		{
 			messageSize = dataSize;
 		}
-		
 
-
-		//buffer = new char[dataSize];
-		//memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
+		// Write the data to the circular buffer
+		buffer = new char[dataSize];
+		memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
 		
-		// TEMP - put data into the buffer
-		//mBuffer.put(buffer, messageSize);
+		mBuffer.put(buffer, messageSize);
 		dataSize -= messageSize;
-		//dataSent += messageSize;
+		dataSent += messageSize;
 
 		delete [] buffer;
-	}*/
-
-	int mSpace = BUFFER_SIZE - mPos;
-
-	if (dataSize > BUFFER_SIZE - mPos)
-	{
-		memcpy(mBuffer + mPos, p_pcm_buffer, mSpace);
-		mPos = 0;
-
-		memcpy(mBuffer, p_pcm_buffer + mSpace, dataSize - mSpace);
-		mPos += dataSize - mSpace;
-	}
-	else
-	{
-		memcpy(mBuffer + mPos, p_pcm_buffer, dataSize);
-		mPos += dataSize;
 	}
 
+	// Free the temporary stream buffer
 	free(p_pcm_buffer);
 }

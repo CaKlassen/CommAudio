@@ -64,12 +64,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Music.cpp" />
     <ClCompile Include="MusicBuffer.cpp" />
     <ClCompile Include="Driver.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Music.h" />
     <ClInclude Include="MusicBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
