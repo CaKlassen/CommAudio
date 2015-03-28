@@ -200,7 +200,7 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 
 	c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
-	strcpy(c->socketinfo.buffer, msg.c_str());
+	strcpy_s(c->socketinfo.buffer, msg.c_str());
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
 	if (sin)
@@ -268,8 +268,6 @@ void Server::disconnectClient(string ip)
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
-	DWORD RecvBytes;
-	DWORD flags;
 	CMessage cm;
 
 	Client* C = (Client*)overlapped;
