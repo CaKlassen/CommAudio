@@ -41,6 +41,7 @@ public:
     QGridLayout *gridLayout;
     QTabWidget *tabWidget;
     QWidget *tab_5;
+    QGridLayout *gridLayout_4;
     QPushButton *pushButton_4;
     QPushButton *pushButton_5;
     QLabel *label_3;
@@ -53,14 +54,16 @@ public:
     QSlider *horizontalSlider;
     QPushButton *pushButton_2;
     QWidget *tab_3;
+    QGridLayout *gridLayout_5;
     QPushButton *pushButton_3;
     QWidget *tab_2;
+    QGridLayout *gridLayout_6;
     QLabel *label;
-    QLabel *label_2;
     QLabel *label_5;
-    QLineEdit *lineEdit;
-    QLineEdit *lineEdit_2;
     QLineEdit *lineEdit_3;
+    QLineEdit *lineEdit;
+    QLabel *label_2;
+    QLineEdit *lineEdit_2;
     QPushButton *pushButton_6;
     QPushButton *pushButton_7;
     QMenuBar *menuBar;
@@ -72,7 +75,8 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QStringLiteral("MainWindow"));
-        MainWindow->resize(820, 609);
+        MainWindow->resize(793, 548);
+        MainWindow->setMaximumSize(QSize(793, 548));
         actionConnect = new QAction(MainWindow);
         actionConnect->setObjectName(QStringLiteral("actionConnect"));
         actionDisconnect = new QAction(MainWindow);
@@ -85,6 +89,7 @@ public:
         gridLayout->setObjectName(QStringLiteral("gridLayout"));
         tabWidget = new QTabWidget(centralWidget);
         tabWidget->setObjectName(QStringLiteral("tabWidget"));
+        tabWidget->setMinimumSize(QSize(490, 341));
         tabWidget->setTabShape(QTabWidget::Rounded);
         tabWidget->setIconSize(QSize(16, 16));
         tabWidget->setUsesScrollButtons(true);
@@ -94,21 +99,33 @@ public:
         tabWidget->setTabBarAutoHide(false);
         tab_5 = new QWidget();
         tab_5->setObjectName(QStringLiteral("tab_5"));
+        gridLayout_4 = new QGridLayout(tab_5);
+        gridLayout_4->setSpacing(6);
+        gridLayout_4->setContentsMargins(11, 11, 11, 11);
+        gridLayout_4->setObjectName(QStringLiteral("gridLayout_4"));
         pushButton_4 = new QPushButton(tab_5);
         pushButton_4->setObjectName(QStringLiteral("pushButton_4"));
-        pushButton_4->setGeometry(QRect(220, 390, 75, 23));
+
+        gridLayout_4->addWidget(pushButton_4, 3, 0, 1, 1);
+
         pushButton_5 = new QPushButton(tab_5);
         pushButton_5->setObjectName(QStringLiteral("pushButton_5"));
-        pushButton_5->setGeometry(QRect(530, 390, 75, 23));
+
+        gridLayout_4->addWidget(pushButton_5, 3, 4, 1, 1);
+
         label_3 = new QLabel(tab_5);
         label_3->setObjectName(QStringLiteral("label_3"));
-        label_3->setGeometry(QRect(210, 150, 47, 13));
+
+        gridLayout_4->addWidget(label_3, 0, 0, 1, 1);
+
         label_4 = new QLabel(tab_5);
         label_4->setObjectName(QStringLiteral("label_4"));
-        label_4->setGeometry(QRect(230, 200, 401, 111));
         QFont font;
         font.setPointSize(32);
         label_4->setFont(font);
+
+        gridLayout_4->addWidget(label_4, 0, 1, 2, 1);
+
         tabWidget->addTab(tab_5, QString());
         tab = new QWidget();
         tab->setObjectName(QStringLiteral("tab"));
@@ -148,44 +165,88 @@ public:
         tabWidget->addTab(tab, QString());
         tab_3 = new QWidget();
         tab_3->setObjectName(QStringLiteral("tab_3"));
+        gridLayout_5 = new QGridLayout(tab_3);
+        gridLayout_5->setSpacing(6);
+        gridLayout_5->setContentsMargins(11, 11, 11, 11);
+        gridLayout_5->setObjectName(QStringLiteral("gridLayout_5"));
         pushButton_3 = new QPushButton(tab_3);
         pushButton_3->setObjectName(QStringLiteral("pushButton_3"));
-        pushButton_3->setGeometry(QRect(310, 160, 161, 161));
+        pushButton_3->setMinimumSize(QSize(214, 200));
+        pushButton_3->setMaximumSize(QSize(214, 200));
+
+        gridLayout_5->addWidget(pushButton_3, 0, 0, 1, 1);
+
         tabWidget->addTab(tab_3, QString());
         tab_2 = new QWidget();
         tab_2->setObjectName(QStringLiteral("tab_2"));
+        gridLayout_6 = new QGridLayout(tab_2);
+        gridLayout_6->setSpacing(6);
+        gridLayout_6->setContentsMargins(11, 11, 11, 11);
+        gridLayout_6->setObjectName(QStringLiteral("gridLayout_6"));
         label = new QLabel(tab_2);
         label->setObjectName(QStringLiteral("label"));
-        label->setGeometry(QRect(130, 130, 47, 13));
-        label_2 = new QLabel(tab_2);
-        label_2->setObjectName(QStringLiteral("label_2"));
-        label_2->setGeometry(QRect(130, 220, 47, 13));
+        label->setMinimumSize(QSize(85, 20));
+        label->setMaximumSize(QSize(85, 20));
+
+        gridLayout_6->addWidget(label, 1, 0, 1, 1);
+
         label_5 = new QLabel(tab_2);
         label_5->setObjectName(QStringLiteral("label_5"));
-        label_5->setGeometry(QRect(130, 330, 47, 13));
-        lineEdit = new QLineEdit(tab_2);
-        lineEdit->setObjectName(QStringLiteral("lineEdit"));
-        lineEdit->setGeometry(QRect(220, 120, 113, 20));
-        lineEdit_2 = new QLineEdit(tab_2);
-        lineEdit_2->setObjectName(QStringLiteral("lineEdit_2"));
-        lineEdit_2->setGeometry(QRect(220, 210, 113, 20));
+        label_5->setMinimumSize(QSize(85, 20));
+        label_5->setMaximumSize(QSize(85, 20));
+
+        gridLayout_6->addWidget(label_5, 2, 0, 1, 1);
+
         lineEdit_3 = new QLineEdit(tab_2);
         lineEdit_3->setObjectName(QStringLiteral("lineEdit_3"));
-        lineEdit_3->setGeometry(QRect(220, 330, 113, 20));
+        lineEdit_3->setMinimumSize(QSize(327, 20));
+        lineEdit_3->setMaximumSize(QSize(327, 20));
+
+        gridLayout_6->addWidget(lineEdit_3, 2, 1, 1, 1);
+
+        lineEdit = new QLineEdit(tab_2);
+        lineEdit->setObjectName(QStringLiteral("lineEdit"));
+        lineEdit->setMinimumSize(QSize(327, 20));
+        lineEdit->setMaximumSize(QSize(327, 20));
+
+        gridLayout_6->addWidget(lineEdit, 0, 1, 1, 1);
+
+        label_2 = new QLabel(tab_2);
+        label_2->setObjectName(QStringLiteral("label_2"));
+        label_2->setMinimumSize(QSize(85, 20));
+        label_2->setMaximumSize(QSize(85, 20));
+
+        gridLayout_6->addWidget(label_2, 0, 0, 1, 1);
+
+        lineEdit_2 = new QLineEdit(tab_2);
+        lineEdit_2->setObjectName(QStringLiteral("lineEdit_2"));
+        lineEdit_2->setMinimumSize(QSize(327, 20));
+        lineEdit_2->setMaximumSize(QSize(327, 20));
+
+        gridLayout_6->addWidget(lineEdit_2, 1, 1, 1, 1);
+
         pushButton_6 = new QPushButton(tab_2);
         pushButton_6->setObjectName(QStringLiteral("pushButton_6"));
-        pushButton_6->setGeometry(QRect(410, 440, 75, 23));
+        pushButton_6->setMinimumSize(QSize(122, 23));
+        pushButton_6->setMaximumSize(QSize(122, 23));
+
+        gridLayout_6->addWidget(pushButton_6, 3, 2, 1, 1);
+
         pushButton_7 = new QPushButton(tab_2);
         pushButton_7->setObjectName(QStringLiteral("pushButton_7"));
-        pushButton_7->setGeometry(QRect(560, 440, 75, 23));
+        pushButton_7->setMinimumSize(QSize(122, 23));
+        pushButton_7->setMaximumSize(QSize(122, 23));
+
+        gridLayout_6->addWidget(pushButton_7, 3, 3, 1, 1);
+
         tabWidget->addTab(tab_2, QString());
 
-        gridLayout->addWidget(tabWidget, 0, 0, 1, 1);
+        gridLayout->addWidget(tabWidget, 1, 0, 1, 1);
 
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 820, 21));
+        menuBar->setGeometry(QRect(0, 0, 793, 21));
         menuTest1 = new QMenu(menuBar);
         menuTest1->setObjectName(QStringLiteral("menuTest1"));
         MainWindow->setMenuBar(menuBar);
@@ -216,7 +277,7 @@ public:
         actionDisconnect->setText(QApplication::translate("MainWindow", "Disconnect", 0));
         pushButton_4->setText(QApplication::translate("MainWindow", "Play", 0));
         pushButton_5->setText(QApplication::translate("MainWindow", "Volume", 0));
-        label_3->setText(QApplication::translate("MainWindow", "Song:", 0));
+        label_3->setText(QApplication::translate("MainWindow", "                  Song:", 0));
         label_4->setText(QApplication::translate("MainWindow", "Current Song ~", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_5), QApplication::translate("MainWindow", "Multicast", 0));
         pushButton->setText(QApplication::translate("MainWindow", "Play", 0));
@@ -225,8 +286,8 @@ public:
         pushButton_3->setText(QApplication::translate("MainWindow", "Microphone On", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Microphone", 0));
         label->setText(QApplication::translate("MainWindow", "Port", 0));
-        label_2->setText(QApplication::translate("MainWindow", "IP Address", 0));
         label_5->setText(QApplication::translate("MainWindow", "File Path", 0));
+        label_2->setText(QApplication::translate("MainWindow", "IP Address", 0));
         pushButton_6->setText(QApplication::translate("MainWindow", "OK", 0));
         pushButton_7->setText(QApplication::translate("MainWindow", "Cancel", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "Config.", 0));
