@@ -384,14 +384,10 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 	std::string msg;
 	createControlString(cMsg, msg);
 
-	if (usingTCP)
-	{
-		Server::send(c, msg);
-	}
-	else
-	{
-		Server::send(c, msg, &c->sin_udp);
-	}
+	if (usingTCP)	Server::send(c, msg);
+	else			Server::send(c, msg, &c->sin_udp);
+
+	// loop until all of the song is sent
 }
 
 void thread_runserver()
