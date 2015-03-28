@@ -1,8 +1,8 @@
 #ifndef MUSIC_BUFFER_H_
 #define MUSIC_BUFFER_H_
 
-#define MESSAGE_SIZE 512
-#define BUFFER_SIZE (MESSAGE_SIZE * 10)
+#define MESSAGE_SIZE 4096
+#define BUFFER_SIZE (MESSAGE_SIZE * 1)
 
 class MusicBuffer
 {

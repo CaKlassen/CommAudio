@@ -21,20 +21,21 @@ using std::string;
 
 /* Driver variables */
 HWAVEOUT outputDevice;
-MusicBuffer mBuffer;
+char *mBuffer;
+int mPos;
 
 int main(void)
 {
-	char *buffer;
-	int bufferLength;
-	WAVEFORMATEX format;
+	mBuffer = new char[BUFFER_SIZE];
+	ZeroMemory(mBuffer, BUFFER_SIZE);
+	mPos = 0;
 
 	// Create VLC objects
 	libvlc_instance_t *inst;
 	libvlc_media_player_t *mediaPlayer;
     char smem_options[256];
 
-	sprintf(smem_options, "#transcode{acodec=s16l}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}",
+	sprintf(smem_options, "#transcode{acodec=s16l,samplerate=44100,channels=2}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}",
                 (long long int)(intptr_t)(void*) &handleStream, (long long int)(intptr_t)(void*) &prepareRender);
                 
 	const char* const vlc_args[] = { "-I", "dummy", "--verbose=0", "--sout", smem_options };
@@ -47,7 +48,7 @@ int main(void)
 	}
 	
 	// Load the media
-	libvlc_media_t *media = libvlc_media_new_path(inst, "test.wav");
+	libvlc_media_t *media = libvlc_media_new_path(inst, "test5.wav");
 
 	if (media == NULL)
 	{
@@ -70,6 +71,8 @@ int main(void)
 	libvlc_media_player_release(mediaPlayer);
     libvlc_release(inst);
 
+	free(mBuffer);
+
 	return 0;
 }
 
@@ -86,13 +89,13 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 	LPWAVEHDR waveHeader3;
 
 	// Set up the wave format
-	temp.nSamplesPerSec = 48000;
+	temp.nSamplesPerSec = 44100;
 	temp.wBitsPerSample = 16;
 	temp.nChannels = 2;
 	temp.cbSize = 0;
 	temp.wFormatTag = WAVE_FORMAT_PCM;
-	temp.nBlockAlign = (temp.wBitsPerSample / 8) * temp.nChannels;
-	temp.nAvgBytesPerSec = temp.nBlockAlign * temp.nSamplesPerSec;
+	temp.nBlockAlign = temp.nChannels * (temp.wBitsPerSample / 8);
+	temp.nAvgBytesPerSec = temp.nSamplesPerSec * temp.wBitsPerSample;
 
 	// Open the output device
 	if (waveOutOpen(&outputDevice, WAVE_MAPPER, &temp, (DWORD) WaveCallback, NULL, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
@@ -109,11 +112,11 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 	waveHeader3 = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
 	ZeroMemory(waveHeader3, sizeof(WAVEHDR));
 
-	waveHeader->lpData = mBuffer.getBuffer();
+	waveHeader->lpData = mBuffer;
 	waveHeader->dwBufferLength = BUFFER_SIZE;
-	waveHeader2->lpData = mBuffer.getBuffer();
+	waveHeader2->lpData = mBuffer;
 	waveHeader2->dwBufferLength = BUFFER_SIZE;
-	waveHeader3->lpData = mBuffer.getBuffer();
+	waveHeader3->lpData = mBuffer;
 	waveHeader3->dwBufferLength = BUFFER_SIZE;
 
 	// Create the wave out header
@@ -123,12 +126,6 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 	{
 		cerr << "Failed to create data header." << endl;
 		return 1;
-	}
-
-	// Play audio
-	while (!mBuffer.ready())
-	{
-		// Wait for data
 	}
 
 	cout << "Ready to play music" << endl;
@@ -166,6 +163,7 @@ DWORD WINAPI readDataThread(LPVOID lpArg)
 ----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
+	cout << "Done callback" << endl;
 	if (uMsg == WOM_DONE)
 	{
 		if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
@@ -187,15 +185,14 @@ void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size)
 void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels, 
 				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts )
 {
-	char *buffer;
+	//char *buffer;
 	int dataSize = size;
-	int messageSize;
-	int dataSent = 0;
+	//int messageSize;
+	//int dataSent = 0;
 
 	// While we have data to write
-	while (dataSize > 0)
+	/*while (dataSize > 0)
 	{
-		Sleep(1);
 		// Set the size of the next message to send
 		if (dataSize > MESSAGE_SIZE)
 		{
@@ -206,15 +203,33 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 			messageSize = dataSize;
 		}
 		
-		buffer = new char[dataSize];
-		memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
+
+
+		//buffer = new char[dataSize];
+		//memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
 		
 		// TEMP - put data into the buffer
-		mBuffer.put(buffer, messageSize);
+		//mBuffer.put(buffer, messageSize);
 		dataSize -= messageSize;
-		dataSent += messageSize;
+		//dataSent += messageSize;
 
 		delete [] buffer;
+	}*/
+
+	int mSpace = BUFFER_SIZE - mPos;
+
+	if (dataSize > BUFFER_SIZE - mPos)
+	{
+		memcpy(mBuffer + mPos, p_pcm_buffer, mSpace);
+		mPos = 0;
+
+		memcpy(mBuffer, p_pcm_buffer + mSpace, dataSize - mSpace);
+		mPos += dataSize - mSpace;
+	}
+	else
+	{
+		memcpy(mBuffer + mPos, p_pcm_buffer, dataSize);
+		mPos += dataSize;
 	}
 
 	free(p_pcm_buffer);
