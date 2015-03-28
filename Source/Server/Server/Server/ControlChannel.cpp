@@ -128,32 +128,31 @@ void parseControlString(string str, CMessage *cMsg)
 -- NOTES:
 --     This function handles a control message.
 ----------------------------------------------------------------------------------------------------------------------*/
-void handleControlMessage(CMessage *cMsg)
+void handleControlMessage(CMessage *cMsg, Client *c)
 {
 	// Switch on the message's type
 	switch (cMsg->msgType)
 	{
-		case END_CONNECTION:
-		{
-			// Client disconnecting
-			Server::disconnectClient(cMsg->msgData[0]);
-			break;
-		}
+	case END_CONNECTION:
+	{
+		// Client disconnecting
+		Server::disconnectClient(cMsg->msgData[0]);
+		break;
+	}
 
-		case PLAY_SONG:
-		{
-			// Client requesting song over UDP
-			playUnicast(cMsg->msgData[0], cMsg->msgData[1]);
+	case PLAY_SONG:
+	{
+		// Client requesting song over UDP
+		playUnicast(c, cMsg->msgData[0], cMsg->msgData[1]);
+		break;
+	}
 
-			break;
-		}
+	case SAVE_SONG:
+	{
+		// Client requesting song over TCP
+		saveUnicast(cMsg->msgData[0], cMsg->msgData[1]);
 
-		case SAVE_SONG:
-		{
-			// Client requesting song over TCP
-			saveUnicast(cMsg->msgData[0], cMsg->msgData[1]);
-
-			break;
-		}
+		break;
+	}
 	}
 }

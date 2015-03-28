@@ -21,7 +21,6 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <WinSock2.h>
 #include <map>
 #include <thread>
 #include "dirent.h"
@@ -339,22 +338,27 @@ void sendCurrentSongMulti(int song)
 -- NOTES:
 --     This function streams a song to a client via UDP
 ----------------------------------------------------------------------------------------------------------------------*/
-void playUnicast(string ip, string song)
+void playUnicast(Client *c, string ip, string song)
 {
-	sockaddr_in sin;
-	if (createSockAddrIn(sin, ip, port + 1))
+	if (createSockAddrIn(c->sin_udp, ip, port + 1))
 	{
-		std::thread t_sendCurrentSongUni(sendCurrentSongUni, song);
-		t_sendCurrentSongUni.detach();
+		std::thread tSendUnicast(sendCurrentSongUni, c, song);
+		tSendUnicast.detach();
 	}
 }
 
-void sendCurrentSongUni(string song)
+void sendCurrentSongUni(Client *c, string song)
 {
 	CMessage cMsg;
 	cMsg.msgType = NOW_PLAYING;
 
+	std::string msg;
 
+	createControlString(cMsg, msg);
+
+	Server::send(c, msg, &c->sin_udp);
+
+	cout << "SENDING" << endl;
 }
 
 /*------------------------------------------------------------------------------------------------------------------

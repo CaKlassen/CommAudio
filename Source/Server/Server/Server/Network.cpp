@@ -154,6 +154,11 @@ bool Server::acceptConnection(SOCKET listenSocket)
 
 	bool success = send(c, startConnMsg);
 
+	if (success)
+	{
+		cout << "CLIENT CONNECTED" << endl;
+	}
+
 	recv(c); // start the recursion
 
 	return success;
@@ -285,7 +290,7 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 	}
 
 	parseControlString(std::string(C->socketinfo.buffer), &cm);
-	handleControlMessage(&cm);
+	handleControlMessage(&cm, C);
 
 	cout << "Received \"" << C->socketinfo.buffer << "\"" << endl;
 

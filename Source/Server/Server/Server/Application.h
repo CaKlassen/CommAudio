@@ -3,7 +3,9 @@
 
 #define DEBUG
 
+#include <WinSock2.h>
 #include <vector>
+#include "Network.h"
 
 #define MUSIC_LOCATION "music"
 
@@ -17,8 +19,8 @@ bool startUnicast();
 bool playMulticast();
 void sendCurrentSongMulti(int song);
 
-void playUnicast(std::string ip, std::string song);
-void sendCurrentSongUni(std::string song);
+void playUnicast(Client *c, std::string ip, std::string song);
+void sendCurrentSongUni(Client *c, std::string song);
 
 void saveUnicast(std::string ip, std::string song);
 

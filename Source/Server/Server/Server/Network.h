@@ -17,6 +17,7 @@ struct SOCKET_INFORMATION
 struct Client
 {
 	SOCKET_INFORMATION socketinfo;
+	sockaddr_in sin_udp;
 };
 
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port);
