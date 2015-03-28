@@ -379,9 +379,9 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
 	CMessage cMsg;
 	cMsg.msgType = NOW_PLAYING;
+	cMsg.msgData.push_back(song);
 
 	std::string msg;
-
 	createControlString(cMsg, msg);
 
 	if (usingTCP)
