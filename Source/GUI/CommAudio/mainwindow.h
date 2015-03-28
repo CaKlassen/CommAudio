@@ -16,25 +16,27 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     void setTracklist(std::vector<std::string> *songs);
+    void disconnectIt();
+    void connectIt();
+    void focusTab(int tabNumber);
+    void errorMessage(QString message);
 
 private slots:
-    void on_pushButton_clicked();
+    void on_uPlayButton_clicked();
 
-    void on_pushButton_2_clicked();
+    void on_uDownloadButton_clicked();
 
-    void on_pushButton_3_clicked();
+    void on_micButton_clicked();
 
-    void on_pushButton_4_clicked();
+    void on_mPlayButton_clicked();
 
-    void on_pushButton_5_clicked();
+    void on_mVolumeButton_clicked();
 
-    void on_actionDisconnect_triggered();
+    void on_actionConnectDisconnect_triggered();
 
-    void on_actionConnect_triggered();
+    void on_cOKButton_clicked();
 
-    void on_pushButton_6_clicked();
-
-    void on_pushButton_7_clicked();
+    void on_cCancelButton_clicked();
 
 private:
     Ui::MainWindow *ui;

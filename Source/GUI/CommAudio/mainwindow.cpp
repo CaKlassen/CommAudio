@@ -30,7 +30,7 @@
 #include <winsock2.h>
 #include <errno.h>
 
-#define BUFSIZE 255
+#define BUFSIZE 8192
 
 using std::string;
 using std::vector;
@@ -42,11 +42,32 @@ vector<string> tracklist;
 
 ClientState cData;
 
+//default settings as of now
 QString IP = "default";
-QString filePath = "c/";
+QString filePath = "c:/";
 int port = 4985;
 
-
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:
+--
+-- PROGRAMMER:
+--
+-- INTERFACE:
+--
+-- PARAMETERS:
+--
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--
+----------------------------------------------------------------------------------------------------------------------*/
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -57,18 +78,20 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.ip = "127.0.0.1";
     cData.port = 7000;
     cData.connected = false;
-    cData.sMode = UNICAST;
+    cData.sMode = UNICAST;//NOTHING;
 
-    ui->lineEdit->setText(IP);
-    ui->lineEdit_2->setText(QString::number(port));
-    ui->lineEdit_3->setText(filePath);
+    IP = QString::fromStdString(cData.ip);
+    port = cData.port;
 
+    ui->cIPAddressText->setText(IP);
+    ui->cPortText->setText(QString::number(port));
+    ui->cFilepathText->setText(filePath);
     /* Populates the list widget  */
     for(int i= 1; i < 10; i++)
     {
-        ui->listWidget->addItem("Song number " + QString::number(i));
+        ui->uSongList->addItem("   Song number " + QString::number(i));
         if (i == 1)
-            ui->listWidget->setCurrentRow(0);
+            ui->uSongList->setCurrentRow(0);
     }
 
 }
@@ -80,25 +103,44 @@ MainWindow::~MainWindow()
 
 //the play button
 int starting = 0;
-void MainWindow::on_pushButton_clicked()
+int currentMusic = -1;
+void MainWindow::on_uPlayButton_clicked()
 {
-
     //This selects the item and then just make it blue
-    QListWidgetItem *theItem = ui->listWidget->currentItem();
+    QListWidgetItem *theItem = ui->uSongList->currentItem();
 
-    theItem->setText("Selected --> " + theItem->text());
-    theItem->setTextColor(Qt::blue);
+    if (theItem->text().left(3) == "   ")
+    {
+        theItem->setText( " > " + theItem->text().mid(3));
+        theItem->setTextColor(Qt::red);
 
-    starting=starting+5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
-    ui->horizontalSlider->setValue(starting); // this is 50 as in 0%
+        currentMusic = ui->uSongList->currentRow();
+    }
 
+    //all items on the list will be reverted back to normal
+    if (true)
+    {
+        for(int i = 0; i < ui->uSongList->count(); ++i)
+        {
+            QListWidgetItem *allItems = ui->uSongList->item(i);
+            if (allItems->text().left(3) == " > " && currentMusic != i)
+            {
+                allItems->setText( "   " + theItem->text().mid(3));
+                allItems->setTextColor(Qt::black);
+            }
+
+        }
+    }
+
+    starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
+    ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
 }
 
 //the download button
 
-void MainWindow::on_pushButton_2_clicked()
+void MainWindow::on_uDownloadButton_clicked()
 {
-    QListWidgetItem *theItem = ui->listWidget->currentItem();
+    QListWidgetItem *theItem = ui->uSongList->currentItem();
 
     /* PopUp message */
     QMessageBox pop;
@@ -113,23 +155,20 @@ void MainWindow::on_pushButton_2_clicked()
 
 bool MicOn = true;
 
-void MainWindow::on_pushButton_3_clicked()
+void MainWindow::on_micButton_clicked()
 {
     MicOn = !MicOn;
     if (MicOn) {
-        ui->pushButton_3->setText("microphone ON");
+        ui->micButton->setText("microphone ON");
     }
     else {
-        ui->pushButton_3->setText("microphone OFF");
+        ui->micButton->setText("microphone OFF");
     }
 }
 
-
-
-void MainWindow::on_pushButton_4_clicked()
+void MainWindow::on_mPlayButton_clicked()
 {
-
-    QLabel *currentSong = ui->label_4;
+    QLabel *currentSong = ui->mCurrentSongLabel;
 
     /* PopUp message */
     QMessageBox pop;
@@ -137,7 +176,7 @@ void MainWindow::on_pushButton_4_clicked()
     pop.exec();
 }
 
-void MainWindow::on_pushButton_5_clicked()
+void MainWindow::on_mVolumeButton_clicked()
 {
 
     /* PopUp message */
@@ -171,7 +210,7 @@ void MainWindow::on_pushButton_5_clicked()
 void MainWindow::setTracklist(vector<string> *songs)
 {
     tracklist.clear();
-    ui->listWidget->clear();
+    ui->uSongList->clear();
 
     // Loop through and add each new song to the tracklist
     for (int i = 0; i < (int) songs->size(); i++)
@@ -179,23 +218,51 @@ void MainWindow::setTracklist(vector<string> *songs)
         tracklist.emplace_back(songs->at(i));
 
         // Update the tracklist GUI component
-        ui->listWidget->addItem(QString::fromStdString(songs->at(i)));
+        ui->uSongList->addItem("   " + QString::fromStdString(songs->at(i)));
     }
 
 }
 
 
 
-void MainWindow::on_actionDisconnect_triggered()
+void MainWindow::on_actionConnectDisconnect_triggered()
 {
-    //once disconnected all tabs are available again
-    for (int n = 0; n < ui->tabWidget->count(); n++)
+    if (ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != "Config.")
     {
-            ui->tabWidget->setTabEnabled(n, true);
+        if (!ui->actionConnectDisconnect->isChecked())
+        {
+            disconnectIt();
+        }
+        else
+        {
+            connectIt();
+        }
+    }
+    else
+    {
+        //if its the connect is being pressed while on the config tab
+        ui->actionConnectDisconnect->setChecked(false);
     }
 }
 
-void MainWindow::on_actionConnect_triggered()
+//this is the button Ok on the config tab
+void MainWindow::on_cOKButton_clicked()
+{
+    IP = ui->cIPAddressText->text();
+    port = ui->cPortText->text().toInt();
+    filePath = ui->cFilepathText->text();
+}
+
+//this is the button cancel on the config tab
+void MainWindow::on_cCancelButton_clicked()
+{
+    ui->cIPAddressText->setText(IP);
+    ui->cPortText->setText(QString::number(port));
+    ui->cFilepathText->setText(filePath);
+
+}
+
+void MainWindow::connectIt()
 {
     int mode = ui->tabWidget->currentIndex();
 
@@ -205,19 +272,7 @@ void MainWindow::on_actionConnect_triggered()
         //check if its unicast
         if (cData.sMode == UNICAST && (mode == 0 || mode==1))
         {
-
-            QMessageBox::information(
-                this,
-                tr("Application Name"),
-                tr("An information message.") );
-
-
-            for (int n = 0; n < ui->tabWidget->count(); n++)
-            {
-                if (n != 1)
-                    ui->tabWidget->setTabEnabled(n, false);
-            }
-
+            focusTab(1);
 
             int n, ns, bytes_to_read;
             int port, err;
@@ -235,14 +290,14 @@ void MainWindow::on_actionConnect_triggered()
             err = WSAStartup(wVersionRequested, &WSAData);
             if (err != 0) //No usable DLL
             {
-                printf("DLL not found!\n");
+                errorMessage("DLL not found!\n");
                 exit(1);
             }
 
             // Create the socket
             if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
             {
-                perror("Cannot create socket");
+                errorMessage("Cannot create socket");
                 exit(1);
             }
 
@@ -253,6 +308,7 @@ void MainWindow::on_actionConnect_triggered()
             if ((hp = gethostbyname(host)) == NULL)
             {
                 fprintf(stderr, "Unknown server address\n");
+                errorMessage("Unknown server address");
                 exit(1);
             }
 
@@ -263,8 +319,8 @@ void MainWindow::on_actionConnect_triggered()
             if (::connect(sd, (struct sockaddr *)&server, sizeof(server)) == -1)
             {
                 fprintf(stderr, "Can't connect to server\n");
-                perror("connect");
-                exit(1);
+                errorMessage("Can't connect to server");
+                return;//exit(1);
             }
             printf("Connected:    Server Name: %s\n", hp->h_name);
             pptr = hp->h_addr_list;
@@ -296,45 +352,57 @@ void MainWindow::on_actionConnect_triggered()
 
             closesocket(sd);
             WSACleanup();
-
-
-
-
         }
+
         //check if it is multicast
         else if (cData.sMode == MULTICAST && (mode==0 || mode==1))
         {
-            for (int n = 0; n < ui->tabWidget->count(); n++)
-            {
-                if (n != 0)
-                    ui->tabWidget->setTabEnabled(n, false);
-            }
+            focusTab(0);
         }
         //if its neither multicast or unicast
         else
         {
-            for (int n = 0; n < ui->tabWidget->count(); n++)
-            {
-                if (n != mode)
-                    ui->tabWidget->setTabEnabled(n, false);
-            }
+            focusTab(mode);
         }
     }
 }
 
-//this is the button Ok on the config tab
-void MainWindow::on_pushButton_6_clicked()
+void MainWindow::disconnectIt()
 {
-    IP = ui->lineEdit->text();
-    port = ui->lineEdit_2->text().toInt();
-    filePath = ui->lineEdit_3->text();
+    //once disconnected all tabs are available again
+    focusTab(-1);
 }
 
-//this is the button cancel on the config tab
-void MainWindow::on_pushButton_7_clicked()
+void MainWindow::focusTab(int tabNumber)
 {
-    ui->lineEdit->setText(IP);
-    ui->lineEdit_2->setText(QString::number(port));
-    ui->lineEdit_3->setText(filePath);
+    //there is no focus on a specific tab, so all are enabled
+    if (tabNumber < 0)
+    {
+        ui->actionConnectDisconnect->setText("Connect");
+        for (int n = 0; n < ui->tabWidget->count(); n++)
+        {
+                ui->tabWidget->setTabEnabled(n, true);
+        }
+    }
+    else
+    {
+        ui->actionConnectDisconnect->setText("Disconnect");
+        for (int n = 0; n < ui->tabWidget->count(); n++)
+        {
+            if (n != tabNumber)
+                ui->tabWidget->setTabEnabled(n, false);
+        }
+    }
+}
 
+void MainWindow::errorMessage(QString message)
+{
+    QMessageBox::warning(
+        this,
+        tr("Error Message!"),
+        message );
+    if (ui->actionConnectDisconnect->isChecked())
+    {
+        focusTab(-1);
+    }
 }
