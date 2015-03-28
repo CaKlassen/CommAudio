@@ -342,23 +342,9 @@ void playUnicast(Client *c, string ip, string song)
 {
 	if (createSockAddrIn(c->sin_udp, ip, port + 1))
 	{
-		std::thread tSendUnicast(sendCurrentSongUni, c, song);
+		std::thread tSendUnicast(sendCurrentSongUni, c, song, false);
 		tSendUnicast.detach();
 	}
-}
-
-void sendCurrentSongUni(Client *c, string song)
-{
-	CMessage cMsg;
-	cMsg.msgType = NOW_PLAYING;
-
-	std::string msg;
-
-	createControlString(cMsg, msg);
-
-	Server::send(c, msg, &c->sin_udp);
-
-	cout << "SENDING" << endl;
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -383,9 +369,29 @@ void sendCurrentSongUni(Client *c, string song)
 -- NOTES:
 --     This function sends a song via TCP to a requesting client.
 ----------------------------------------------------------------------------------------------------------------------*/
-void saveUnicast(string ip, string song)
+void saveUnicast(Client *c, string ip, string song)
 {
+	std::thread tSendUnicast(sendCurrentSongUni, c, song, true);
+	tSendUnicast.detach();
+}
 
+void sendCurrentSongUni(Client *c, string song, bool usingTCP)
+{
+	CMessage cMsg;
+	cMsg.msgType = NOW_PLAYING;
+
+	std::string msg;
+
+	createControlString(cMsg, msg);
+
+	if (usingTCP)
+	{
+		Server::send(c, msg);
+	}
+	else
+	{
+		Server::send(c, msg, &c->sin_udp);
+	}
 }
 
 void thread_runserver()

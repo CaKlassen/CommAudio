@@ -20,8 +20,8 @@ bool playMulticast();
 void sendCurrentSongMulti(int song);
 
 void playUnicast(Client *c, std::string ip, std::string song);
-void sendCurrentSongUni(Client *c, std::string song);
+void saveUnicast(Client *c, std::string ip, std::string song);
 
-void saveUnicast(std::string ip, std::string song);
+void sendCurrentSongUni(Client *c, std::string song, bool usingTCP);
 
 #endif

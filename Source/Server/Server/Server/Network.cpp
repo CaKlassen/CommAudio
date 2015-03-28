@@ -200,7 +200,7 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 
 	c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
-	msg.copy(c->socketinfo.buffer, DATA_BUFSIZE);
+	strcpy(c->socketinfo.buffer, msg.c_str());
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
 	if (sin)
@@ -217,6 +217,7 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 				return false;
 			}
 		}
+		cout << "send udp> " << c->socketinfo.buffer << endl;
 	}
 	else
 	{
@@ -231,6 +232,7 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 				return false;
 			}
 		}
+		cout << "send tcp> " << c->socketinfo.buffer << endl;
 	}
 
 	return true;
@@ -289,10 +291,10 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 		return;
 	}
 
+	cout << "recv> " << C->socketinfo.buffer << endl;
+
 	parseControlString(std::string(C->socketinfo.buffer), &cm);
 	handleControlMessage(&cm, C);
-
-	cout << "Received \"" << C->socketinfo.buffer << "\"" << endl;
 
 	Server::recv(C);
 }

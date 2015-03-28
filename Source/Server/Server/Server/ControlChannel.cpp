@@ -150,7 +150,7 @@ void handleControlMessage(CMessage *cMsg, Client *c)
 	case SAVE_SONG:
 	{
 		// Client requesting song over TCP
-		saveUnicast(cMsg->msgData[0], cMsg->msgData[1]);
+		saveUnicast(c, cMsg->msgData[0], cMsg->msgData[1]);
 
 		break;
 	}
