@@ -26,6 +26,11 @@
 #include <QSlider>
 #include <vector>
 #include "Network.h"
+#include <stdio.h>
+#include <winsock2.h>
+#include <errno.h>
+
+#define BUFSIZE 255
 
 using std::string;
 using std::vector;
@@ -50,9 +55,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Set up the client data structure
     cData.ip = "127.0.0.1";
-    cData.port = 0;
+    cData.port = 7000;
     cData.connected = false;
-    cData.sMode = NOTHING;
+    cData.sMode = UNICAST;
 
     ui->lineEdit->setText(IP);
     ui->lineEdit_2->setText(QString::number(port));
@@ -198,13 +203,103 @@ void MainWindow::on_actionConnect_triggered()
     if (ui->tabWidget->tabText(mode) != "Config.")
     {
         //check if its unicast
-        if (cData.sMode == UNICAST && (mode==0 || mode==1))
+        if (cData.sMode == UNICAST && (mode == 0 || mode==1))
         {
+
+            QMessageBox::information(
+                this,
+                tr("Application Name"),
+                tr("An information message.") );
+
+
             for (int n = 0; n < ui->tabWidget->count(); n++)
             {
                 if (n != 1)
                     ui->tabWidget->setTabEnabled(n, false);
             }
+
+
+            int n, ns, bytes_to_read;
+            int port, err;
+            SOCKET sd;
+            struct hostent	*hp;
+            struct sockaddr_in server;
+            char  *host, *bp, rbuf[BUFSIZE], sbuf[BUFSIZE], **pptr;
+            WSADATA WSAData;
+            WORD wVersionRequested;
+
+            host = "localhost";
+            port = cData.port;
+
+            wVersionRequested = MAKEWORD(2, 2);
+            err = WSAStartup(wVersionRequested, &WSAData);
+            if (err != 0) //No usable DLL
+            {
+                printf("DLL not found!\n");
+                exit(1);
+            }
+
+            // Create the socket
+            if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+            {
+                perror("Cannot create socket");
+                exit(1);
+            }
+
+            // Initialize and set up the address structure
+            memset((char *)&server, 0, sizeof(struct sockaddr_in));
+            server.sin_family = AF_INET;
+            server.sin_port = htons(port);
+            if ((hp = gethostbyname(host)) == NULL)
+            {
+                fprintf(stderr, "Unknown server address\n");
+                exit(1);
+            }
+
+            // Copy the server address
+            memcpy((char *)&server.sin_addr, hp->h_addr, hp->h_length);
+
+            // Connecting to the server
+            if (::connect(sd, (struct sockaddr *)&server, sizeof(server)) == -1)
+            {
+                fprintf(stderr, "Can't connect to server\n");
+                perror("connect");
+                exit(1);
+            }
+            printf("Connected:    Server Name: %s\n", hp->h_name);
+            pptr = hp->h_addr_list;
+            printf("\t\tIP Address: %s\n", inet_ntoa(server.sin_addr));
+
+            for (;;)
+            {
+                printf("Transmiting:\n");
+                memset((char *)sbuf, 0, sizeof(sbuf));
+                gets(sbuf); // get user's text
+
+                // Transmit data through the socket
+                ns = send(sd, sbuf, BUFSIZE, 0);
+                printf("Receive:\n");
+                bp = rbuf;
+                bytes_to_read = BUFSIZE;
+/*
+                // client makes repeated calls to recv until no more data is expected to arrive.
+                while ((n = recv(sd, bp, bytes_to_read, 0)) < BUFSIZE)
+                {
+                    bp += n;
+                    bytes_to_read -= n;
+                    if (n == 0)
+                        break;
+                }
+                */
+                printf("%s\n\n", rbuf);
+            }
+
+            closesocket(sd);
+            WSACleanup();
+
+
+
+
         }
         //check if it is multicast
         else if (cData.sMode == MULTICAST && (mode==0 || mode==1))
@@ -227,6 +322,7 @@ void MainWindow::on_actionConnect_triggered()
     }
 }
 
+//this is the button Ok on the config tab
 void MainWindow::on_pushButton_6_clicked()
 {
     IP = ui->lineEdit->text();
@@ -234,6 +330,7 @@ void MainWindow::on_pushButton_6_clicked()
     filePath = ui->lineEdit_3->text();
 }
 
+//this is the button cancel on the config tab
 void MainWindow::on_pushButton_7_clicked()
 {
     ui->lineEdit->setText(IP);
