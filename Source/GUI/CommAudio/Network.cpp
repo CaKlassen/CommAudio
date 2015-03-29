@@ -25,6 +25,7 @@
 #include "Network.h"
 
 using std::cerr;
+using std::cout;
 using std::endl;
 
 // Network Variables
@@ -167,7 +168,7 @@ void connectMusic(ClientState *cData)
     // Bind the socket
     multicastInfo.sin_family = AF_INET;
     multicastInfo.sin_addr.s_addr = htonl(INADDR_ANY);
-    multicastInfo.sin_port = htons(cData->port);
+    multicastInfo.sin_port = htons(9000);//cData->port);
 
     if (bind(multicastSocket, (struct sockaddr*) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
     {
@@ -177,7 +178,7 @@ void connectMusic(ClientState *cData)
     }
 
     // Join the Multicast Session
-    multicastInterface.imr_multiaddr.s_addr = inet_addr(cData->ip.c_str());
+    multicastInterface.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
     multicastInterface.imr_interface.s_addr = INADDR_ANY;
 
     if (setsockopt(multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP,
@@ -188,7 +189,7 @@ void connectMusic(ClientState *cData)
         exit(1);
     }
 
-    while (cData->connected)
+    while (!cData->connected)
     {
         // Receive data from the server
         int infoSize = sizeof(struct sockaddr_in);
@@ -199,6 +200,8 @@ void connectMusic(ClientState *cData)
             cerr << "Error reading data from multicast socket." << endl;
             continue;
         }
+        
+        cout << musicBuffer << endl;
     }
 }
 

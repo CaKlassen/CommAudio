@@ -88,7 +88,7 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.ip = "127.0.0.1";
     cData.port = 7000;
     cData.connected = false;
-    cData.sMode = UNICAST;//NOTHING;
+    cData.sMode = MULTICAST;//NOTHING;
 
     IP = QString::fromStdString(cData.ip);
     port = cData.port;

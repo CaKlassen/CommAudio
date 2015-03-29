@@ -4,6 +4,7 @@
 #include <WinSock2.h>
 #include <vector>
 
+#define MULTICAST_ADDR "234.5.6.7"
 #define DATA_BUFSIZE 8192
 
 enum ServerMode { MULTICAST, UNICAST };

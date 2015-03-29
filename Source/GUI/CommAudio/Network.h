@@ -3,6 +3,10 @@
 
 #include <string>
 
+
+/* The Multicast IP to connect to */
+#define MULTICAST_ADDR "234.5.6.7"
+
 /* The size of a data message */
 #define MESSAGE_SIZE 512
 

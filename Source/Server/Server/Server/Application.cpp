@@ -23,6 +23,8 @@
 #include <cstdlib>
 #include <map>
 #include <thread>
+#include <WS2tcpip.h>
+
 #include "dirent.h"
 
 #include "Network.h"
@@ -44,6 +46,10 @@ bool done = false;
 
 // Socket variables
 WSADATA wsaData;
+SOCKET multicastSocket;
+SOCKADDR_IN multicastInfo;
+SOCKADDR_IN multicastDestInfo;
+struct ip_mreq multicastInterface;
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: main
@@ -220,8 +226,49 @@ bool loadTracklist(vector<string> *tlist, string location)
 bool startMulticast()
 {
 	// Open the multicast socket
+	if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to open multicast socket." << endl;
+		return false;
+	}
+
+	multicastInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+	multicastInfo.sin_family = AF_INET;
+	multicastInfo.sin_port = 0;
+	
+	if (bind(multicastSocket, (struct sockaddr *) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to bind multicast socket." << endl;
+		return false;
+	}
 
 	// Connect to the multicast group
+	multicastInterface.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
+	multicastInterface.imr_interface.s_addr = INADDR_ANY;
+
+	if (setsockopt(multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastInterface, sizeof(multicastInterface)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to create multicast group." << endl;
+		return false;
+	}
+
+	u_long ttl = 2;
+	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to set time to live." << endl;
+		return false;
+	}
+
+	bool loopback = false;
+	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&loopback, sizeof(loopback)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to set loopback." << endl;
+		return false;
+	}
+
+	multicastDestInfo.sin_addr.s_addr = inet_addr(MULTICAST_ADDR);
+	multicastDestInfo.sin_family = AF_INET;
+	multicastDestInfo.sin_port = port;
 
 	// Play music in a loop
 	if (!playMulticast())
@@ -269,6 +316,12 @@ bool playMulticast()
 		while (!done)
 		{
 			// Send part of the song to the multicast socket
+			char testBuffer[] = "Testing";
+			sendto(multicastSocket, testBuffer, strlen(testBuffer), 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+			
+			cout << "Sent data." << endl;
+
+			Sleep(1000);
 		}
 
 
