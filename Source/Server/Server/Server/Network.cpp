@@ -20,6 +20,7 @@
 #include "Network.h"
 
 #include <iostream>
+#include <sstream>
 #include "ControlChannel.h"
 
 using namespace std;
@@ -129,18 +130,20 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 -- DESIGNER: Melvin Loho
 --
 -- PROGRAMMER: Melvin Loho
+--			   Chris Klassen
 --
--- INTERFACE: bool Server::acceptConnection(SOCKET listenSocket)
+-- INTERFACE: bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 --
 -- PARAMETERS:
 --		listenSocket - the socket to accept connections from
+--		sMode - the server's current mode
 --
 -- RETURNS: bool - whether the "start connection" message was sent successfuly to the client after their acceptance
 --
 -- NOTES:
 --     This function accepts an incoming client connection request.
 ----------------------------------------------------------------------------------------------------------------------*/
-bool Server::acceptConnection(SOCKET listenSocket)
+bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 {
 	Client* c = nullptr;
 	string startConnMsg;
@@ -150,7 +153,13 @@ bool Server::acceptConnection(SOCKET listenSocket)
 	c = createClient();
 	c->socketinfo.socket = acceptedSocket;
 
-	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
+	CMessage cMsg;
+	cMsg.msgType = START_CONNECTION;
+	stringstream ss;
+	ss << sMode;
+	cMsg.msgData.emplace_back(ss.str());
+
+	createControlString(cMsg, startConnMsg);
 
 	bool success = send(c, startConnMsg);
 

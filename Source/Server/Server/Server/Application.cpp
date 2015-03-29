@@ -394,7 +394,7 @@ void thread_runserver()
 {
 	while (Server::isAlive())
 	{
-		Server::acceptConnection(listeningSocket);
+		Server::acceptConnection(listeningSocket, sMode);
 	}
 }
 

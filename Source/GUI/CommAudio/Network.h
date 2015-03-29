@@ -26,9 +26,9 @@ struct ClientState
 typedef struct ClientState ClientState;
 
 
+void connectControlChannel(ClientState *cData);
 void streamMusic(ClientState *cData);
 void connectMusic(ClientState *cData);
 
-void addToMusicBuffer(char *buffer, int bufferSize);
 
 #endif

@@ -11,7 +11,10 @@ WSADATA stWSAData;
 int main(int argc, char *argv[])
 {
     // Start WinSock
-    WSAStartup(0x0202, &stWSAData);
+    if (WSAStartup(0x0202, &stWSAData) != 0)
+    {
+        exit(1);
+    }
 
     QApplication a(argc, argv);
     MainWindow w;

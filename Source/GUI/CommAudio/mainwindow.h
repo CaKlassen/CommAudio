@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <vector>
+#include "Network.h"
 
 namespace Ui {
 class MainWindow;
@@ -42,5 +43,7 @@ private:
     Ui::MainWindow *ui;
 
 };
+
+void updateServerMode(ServerMode sMode);
 
 #endif // MAINWINDOW_H
