@@ -27,6 +27,5 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui
 
 LIBS += -lws2_32
-LIBS += lwinmm
 
 CONFIG += c++11
