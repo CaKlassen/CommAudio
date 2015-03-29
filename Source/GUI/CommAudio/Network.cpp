@@ -29,6 +29,7 @@ using std::endl;
 
 // Network Variables
 SOCKET controlSocket;
+SOCKADDR_IN controlInfo;
 char musicBuffer[BUFFER_SIZE];
 
 // Unicast Variables
@@ -45,6 +46,74 @@ struct ip_mreq multicastInterface;
 // Microphone Variables
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: connectContolChannel
+--
+-- DATE: March 28, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void connectControlChannel(ClientState *cData);
+--
+-- PARAMETERS:
+--      cData - the struct containing all client state information
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is responsible for connecting the client to the server
+--     via a TCP control channel.
+----------------------------------------------------------------------------------------------------------------------*/
+void connectControlChannel(ClientState *cData)
+{
+    int port;
+    struct hostent *hp;
+    char *host;
+
+    host = (char *) cData->ip.c_str();
+    port = 9000;//cData->port;
+    
+    WSADATA stWSAData;
+    if (WSAStartup(0x0202, &stWSAData) != 0)
+    {
+        cerr << "Failed to start WinSock." << endl;
+        exit(1);
+    }
+    
+    // Create the socket
+    if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        cerr << "Failed to open control socket." << endl;
+        WSACleanup();
+        exit(1);
+    }
+
+    // Initialize and set up the address structure
+    memset((char *)&controlInfo, 0, sizeof(struct sockaddr_in));
+    controlInfo.sin_family = AF_INET;
+    controlInfo.sin_port = htons(port);
+    if ((hp = gethostbyname(host)) == NULL)
+    {
+        cerr << "Failed to identify server host." << endl;
+        WSACleanup();
+        exit(1);
+    }
+
+    // Copy the server address
+    memcpy((char *)&controlInfo.sin_addr, hp->h_addr, hp->h_length);
+
+    // Connecting to the server
+    if (::connect(controlSocket, (struct sockaddr *)&controlInfo, sizeof(controlInfo)) == -1)
+    {
+        cerr << "Failed to connect to the server." << endl;
+        WSACleanup();
+        return;
+    }
+}
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: connectMusic
@@ -70,12 +139,6 @@ struct ip_mreq multicastInterface;
 ----------------------------------------------------------------------------------------------------------------------*/
 void connectMusic(ClientState *cData)
 {
-    // While we are waiting for the server to tell us what state it is in
-    while (cData->sMode == NOTHING)
-    {
-        // Do nothing
-    }
-
     if (cData->sMode == UNICAST)
     {
         // Our functionality exists based on GUI elements and callbacks;
@@ -201,33 +264,3 @@ void streamMusic(ClientState *cData)
     }
 }
 
-
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: addToMusicBuffer
---
--- DATE: March 18, 2015
---
--- REVISIONS: (Date and Description)
---
--- DESIGNER: Chris Klassen
---
--- PROGRAMMER: Chris Klassen
---
--- INTERFACE: void addToMusicBuffer(char *buffer, int bufferSize);
---
--- PARAMETERS:
---      buffer - the data to add
---      bufferSize - the amount of data to add
---
--- RETURNS: void
---
--- NOTES:
---     This function adds music to the music stream buffer.
-----------------------------------------------------------------------------------------------------------------------*/
-void addToMusicBuffer(char *buffer, int bufferSize)
-{
-    for (int i = 0; i < bufferSize; i++)
-    {
-        //musicBuffer[]
-    }
-}

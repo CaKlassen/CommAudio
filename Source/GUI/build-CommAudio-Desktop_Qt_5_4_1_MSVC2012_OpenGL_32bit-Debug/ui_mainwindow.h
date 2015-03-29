@@ -20,7 +20,6 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QListWidget>
 #include <QtWidgets/QMainWindow>
-#include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSlider>
@@ -35,39 +34,40 @@ QT_BEGIN_NAMESPACE
 class Ui_MainWindow
 {
 public:
-    QAction *actionConnect;
-    QAction *actionDisconnect;
+    QAction *actionConnectDisconnect;
     QWidget *centralWidget;
     QGridLayout *gridLayout;
     QTabWidget *tabWidget;
     QWidget *tab_5;
     QGridLayout *gridLayout_4;
-    QPushButton *pushButton_4;
-    QPushButton *pushButton_5;
-    QLabel *label_3;
-    QLabel *label_4;
+    QPushButton *mPlayButton;
+    QPushButton *mVolumeButton;
+    QLabel *mSongLabel;
+    QLabel *mCurrentSongLabel;
     QWidget *tab;
     QVBoxLayout *verticalLayout_3;
-    QListWidget *listWidget;
+    QHBoxLayout *horizontalLayout;
+    QListWidget *uPlayList;
+    QListWidget *uDownloadList;
+    QListWidget *uSongList;
     QHBoxLayout *horizontalLayout_2;
-    QPushButton *pushButton;
-    QSlider *horizontalSlider;
-    QPushButton *pushButton_2;
+    QPushButton *uPlayButton;
+    QSlider *uMusicProgressSlider;
+    QPushButton *uDownloadButton;
     QWidget *tab_3;
     QGridLayout *gridLayout_5;
-    QPushButton *pushButton_3;
+    QPushButton *micButton;
     QWidget *tab_2;
     QGridLayout *gridLayout_6;
-    QLabel *label;
-    QLabel *label_5;
-    QLineEdit *lineEdit_3;
-    QLineEdit *lineEdit;
-    QLabel *label_2;
-    QLineEdit *lineEdit_2;
-    QPushButton *pushButton_6;
-    QPushButton *pushButton_7;
+    QLabel *cPortLabel;
+    QLabel *cFilepathLabel;
+    QLineEdit *cFilepathText;
+    QLineEdit *cIPAddressText;
+    QLabel *cIPAddressLabel;
+    QLineEdit *cPortText;
+    QPushButton *cOKButton;
+    QPushButton *cCancelButton;
     QMenuBar *menuBar;
-    QMenu *menuTest1;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
 
@@ -75,12 +75,11 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QStringLiteral("MainWindow"));
-        MainWindow->resize(793, 548);
+        MainWindow->resize(674, 548);
         MainWindow->setMaximumSize(QSize(793, 548));
-        actionConnect = new QAction(MainWindow);
-        actionConnect->setObjectName(QStringLiteral("actionConnect"));
-        actionDisconnect = new QAction(MainWindow);
-        actionDisconnect->setObjectName(QStringLiteral("actionDisconnect"));
+        actionConnectDisconnect = new QAction(MainWindow);
+        actionConnectDisconnect->setObjectName(QStringLiteral("actionConnectDisconnect"));
+        actionConnectDisconnect->setCheckable(true);
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         gridLayout = new QGridLayout(centralWidget);
@@ -103,28 +102,28 @@ public:
         gridLayout_4->setSpacing(6);
         gridLayout_4->setContentsMargins(11, 11, 11, 11);
         gridLayout_4->setObjectName(QStringLiteral("gridLayout_4"));
-        pushButton_4 = new QPushButton(tab_5);
-        pushButton_4->setObjectName(QStringLiteral("pushButton_4"));
+        mPlayButton = new QPushButton(tab_5);
+        mPlayButton->setObjectName(QStringLiteral("mPlayButton"));
 
-        gridLayout_4->addWidget(pushButton_4, 3, 0, 1, 1);
+        gridLayout_4->addWidget(mPlayButton, 3, 0, 1, 1);
 
-        pushButton_5 = new QPushButton(tab_5);
-        pushButton_5->setObjectName(QStringLiteral("pushButton_5"));
+        mVolumeButton = new QPushButton(tab_5);
+        mVolumeButton->setObjectName(QStringLiteral("mVolumeButton"));
 
-        gridLayout_4->addWidget(pushButton_5, 3, 4, 1, 1);
+        gridLayout_4->addWidget(mVolumeButton, 3, 4, 1, 1);
 
-        label_3 = new QLabel(tab_5);
-        label_3->setObjectName(QStringLiteral("label_3"));
+        mSongLabel = new QLabel(tab_5);
+        mSongLabel->setObjectName(QStringLiteral("mSongLabel"));
 
-        gridLayout_4->addWidget(label_3, 0, 0, 1, 1);
+        gridLayout_4->addWidget(mSongLabel, 0, 0, 1, 1);
 
-        label_4 = new QLabel(tab_5);
-        label_4->setObjectName(QStringLiteral("label_4"));
+        mCurrentSongLabel = new QLabel(tab_5);
+        mCurrentSongLabel->setObjectName(QStringLiteral("mCurrentSongLabel"));
         QFont font;
         font.setPointSize(32);
-        label_4->setFont(font);
+        mCurrentSongLabel->setFont(font);
 
-        gridLayout_4->addWidget(label_4, 0, 1, 2, 1);
+        gridLayout_4->addWidget(mCurrentSongLabel, 0, 1, 2, 1);
 
         tabWidget->addTab(tab_5, QString());
         tab = new QWidget();
@@ -133,31 +132,75 @@ public:
         verticalLayout_3->setSpacing(6);
         verticalLayout_3->setContentsMargins(11, 11, 11, 11);
         verticalLayout_3->setObjectName(QStringLiteral("verticalLayout_3"));
-        listWidget = new QListWidget(tab);
-        listWidget->setObjectName(QStringLiteral("listWidget"));
+        horizontalLayout = new QHBoxLayout();
+        horizontalLayout->setSpacing(0);
+        horizontalLayout->setObjectName(QStringLiteral("horizontalLayout"));
+        uPlayList = new QListWidget(tab);
+        uPlayList->setObjectName(QStringLiteral("uPlayList"));
+        uPlayList->setMinimumSize(QSize(30, 0));
+        uPlayList->setMaximumSize(QSize(30, 16777215));
+        QFont font1;
+        font1.setBold(true);
+        font1.setWeight(75);
+        uPlayList->setFont(font1);
+        uPlayList->setStyleSheet(QLatin1String("border-style:solid;\n"
+"border-color: black;\n"
+"border-top-width: 1px;\n"
+"border-left-width: 1px;\n"
+"border-bottom-width:1px;"));
+        uPlayList->setSelectionMode(QAbstractItemView::NoSelection);
+        uPlayList->setSelectionRectVisible(true);
 
-        verticalLayout_3->addWidget(listWidget);
+        horizontalLayout->addWidget(uPlayList);
+
+        uDownloadList = new QListWidget(tab);
+        uDownloadList->setObjectName(QStringLiteral("uDownloadList"));
+        uDownloadList->setMinimumSize(QSize(30, 0));
+        uDownloadList->setMaximumSize(QSize(30, 16777215));
+        uDownloadList->setFont(font1);
+        uDownloadList->setStyleSheet(QLatin1String("border-style:solid;\n"
+"border-color: black;\n"
+"border-top-width: 1px;\n"
+"border-bottom-width:1px;"));
+        uDownloadList->setSelectionMode(QAbstractItemView::NoSelection);
+        uDownloadList->setSelectionRectVisible(true);
+
+        horizontalLayout->addWidget(uDownloadList);
+
+        uSongList = new QListWidget(tab);
+        uSongList->setObjectName(QStringLiteral("uSongList"));
+        uSongList->setStyleSheet(QLatin1String("border-style:solid;\n"
+"border-color: black;\n"
+"border-top-width: 1px;\n"
+"border-right-width: 1px;\n"
+"border-bottom-width:1px;"));
+        uSongList->setSelectionRectVisible(false);
+
+        horizontalLayout->addWidget(uSongList);
+
+
+        verticalLayout_3->addLayout(horizontalLayout);
 
         horizontalLayout_2 = new QHBoxLayout();
-        horizontalLayout_2->setSpacing(6);
+        horizontalLayout_2->setSpacing(0);
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
         horizontalLayout_2->setSizeConstraint(QLayout::SetDefaultConstraint);
-        pushButton = new QPushButton(tab);
-        pushButton->setObjectName(QStringLiteral("pushButton"));
+        uPlayButton = new QPushButton(tab);
+        uPlayButton->setObjectName(QStringLiteral("uPlayButton"));
 
-        horizontalLayout_2->addWidget(pushButton);
+        horizontalLayout_2->addWidget(uPlayButton);
 
-        horizontalSlider = new QSlider(tab);
-        horizontalSlider->setObjectName(QStringLiteral("horizontalSlider"));
-        horizontalSlider->setEnabled(false);
-        horizontalSlider->setOrientation(Qt::Horizontal);
+        uMusicProgressSlider = new QSlider(tab);
+        uMusicProgressSlider->setObjectName(QStringLiteral("uMusicProgressSlider"));
+        uMusicProgressSlider->setEnabled(false);
+        uMusicProgressSlider->setOrientation(Qt::Horizontal);
 
-        horizontalLayout_2->addWidget(horizontalSlider);
+        horizontalLayout_2->addWidget(uMusicProgressSlider);
 
-        pushButton_2 = new QPushButton(tab);
-        pushButton_2->setObjectName(QStringLiteral("pushButton_2"));
+        uDownloadButton = new QPushButton(tab);
+        uDownloadButton->setObjectName(QStringLiteral("uDownloadButton"));
 
-        horizontalLayout_2->addWidget(pushButton_2);
+        horizontalLayout_2->addWidget(uDownloadButton);
 
 
         verticalLayout_3->addLayout(horizontalLayout_2);
@@ -169,12 +212,12 @@ public:
         gridLayout_5->setSpacing(6);
         gridLayout_5->setContentsMargins(11, 11, 11, 11);
         gridLayout_5->setObjectName(QStringLiteral("gridLayout_5"));
-        pushButton_3 = new QPushButton(tab_3);
-        pushButton_3->setObjectName(QStringLiteral("pushButton_3"));
-        pushButton_3->setMinimumSize(QSize(214, 200));
-        pushButton_3->setMaximumSize(QSize(214, 200));
+        micButton = new QPushButton(tab_3);
+        micButton->setObjectName(QStringLiteral("micButton"));
+        micButton->setMinimumSize(QSize(214, 200));
+        micButton->setMaximumSize(QSize(214, 200));
 
-        gridLayout_5->addWidget(pushButton_3, 0, 0, 1, 1);
+        gridLayout_5->addWidget(micButton, 0, 0, 1, 1);
 
         tabWidget->addTab(tab_3, QString());
         tab_2 = new QWidget();
@@ -183,88 +226,85 @@ public:
         gridLayout_6->setSpacing(6);
         gridLayout_6->setContentsMargins(11, 11, 11, 11);
         gridLayout_6->setObjectName(QStringLiteral("gridLayout_6"));
-        label = new QLabel(tab_2);
-        label->setObjectName(QStringLiteral("label"));
-        label->setMinimumSize(QSize(85, 20));
-        label->setMaximumSize(QSize(85, 20));
+        cPortLabel = new QLabel(tab_2);
+        cPortLabel->setObjectName(QStringLiteral("cPortLabel"));
+        cPortLabel->setMinimumSize(QSize(85, 20));
+        cPortLabel->setMaximumSize(QSize(85, 20));
 
-        gridLayout_6->addWidget(label, 1, 0, 1, 1);
+        gridLayout_6->addWidget(cPortLabel, 1, 0, 1, 1);
 
-        label_5 = new QLabel(tab_2);
-        label_5->setObjectName(QStringLiteral("label_5"));
-        label_5->setMinimumSize(QSize(85, 20));
-        label_5->setMaximumSize(QSize(85, 20));
+        cFilepathLabel = new QLabel(tab_2);
+        cFilepathLabel->setObjectName(QStringLiteral("cFilepathLabel"));
+        cFilepathLabel->setMinimumSize(QSize(85, 20));
+        cFilepathLabel->setMaximumSize(QSize(85, 20));
 
-        gridLayout_6->addWidget(label_5, 2, 0, 1, 1);
+        gridLayout_6->addWidget(cFilepathLabel, 2, 0, 1, 1);
 
-        lineEdit_3 = new QLineEdit(tab_2);
-        lineEdit_3->setObjectName(QStringLiteral("lineEdit_3"));
-        lineEdit_3->setMinimumSize(QSize(327, 20));
-        lineEdit_3->setMaximumSize(QSize(327, 20));
+        cFilepathText = new QLineEdit(tab_2);
+        cFilepathText->setObjectName(QStringLiteral("cFilepathText"));
+        cFilepathText->setMinimumSize(QSize(327, 20));
+        cFilepathText->setMaximumSize(QSize(327, 20));
 
-        gridLayout_6->addWidget(lineEdit_3, 2, 1, 1, 1);
+        gridLayout_6->addWidget(cFilepathText, 2, 1, 1, 1);
 
-        lineEdit = new QLineEdit(tab_2);
-        lineEdit->setObjectName(QStringLiteral("lineEdit"));
-        lineEdit->setMinimumSize(QSize(327, 20));
-        lineEdit->setMaximumSize(QSize(327, 20));
+        cIPAddressText = new QLineEdit(tab_2);
+        cIPAddressText->setObjectName(QStringLiteral("cIPAddressText"));
+        cIPAddressText->setMinimumSize(QSize(327, 20));
+        cIPAddressText->setMaximumSize(QSize(327, 20));
 
-        gridLayout_6->addWidget(lineEdit, 0, 1, 1, 1);
+        gridLayout_6->addWidget(cIPAddressText, 0, 1, 1, 1);
 
-        label_2 = new QLabel(tab_2);
-        label_2->setObjectName(QStringLiteral("label_2"));
-        label_2->setMinimumSize(QSize(85, 20));
-        label_2->setMaximumSize(QSize(85, 20));
+        cIPAddressLabel = new QLabel(tab_2);
+        cIPAddressLabel->setObjectName(QStringLiteral("cIPAddressLabel"));
+        cIPAddressLabel->setMinimumSize(QSize(85, 20));
+        cIPAddressLabel->setMaximumSize(QSize(85, 20));
 
-        gridLayout_6->addWidget(label_2, 0, 0, 1, 1);
+        gridLayout_6->addWidget(cIPAddressLabel, 0, 0, 1, 1);
 
-        lineEdit_2 = new QLineEdit(tab_2);
-        lineEdit_2->setObjectName(QStringLiteral("lineEdit_2"));
-        lineEdit_2->setMinimumSize(QSize(327, 20));
-        lineEdit_2->setMaximumSize(QSize(327, 20));
+        cPortText = new QLineEdit(tab_2);
+        cPortText->setObjectName(QStringLiteral("cPortText"));
+        cPortText->setMinimumSize(QSize(327, 20));
+        cPortText->setMaximumSize(QSize(327, 20));
 
-        gridLayout_6->addWidget(lineEdit_2, 1, 1, 1, 1);
+        gridLayout_6->addWidget(cPortText, 1, 1, 1, 1);
 
-        pushButton_6 = new QPushButton(tab_2);
-        pushButton_6->setObjectName(QStringLiteral("pushButton_6"));
-        pushButton_6->setMinimumSize(QSize(122, 23));
-        pushButton_6->setMaximumSize(QSize(122, 23));
+        cOKButton = new QPushButton(tab_2);
+        cOKButton->setObjectName(QStringLiteral("cOKButton"));
+        cOKButton->setMinimumSize(QSize(122, 23));
+        cOKButton->setMaximumSize(QSize(122, 23));
 
-        gridLayout_6->addWidget(pushButton_6, 3, 2, 1, 1);
+        gridLayout_6->addWidget(cOKButton, 3, 2, 1, 1);
 
-        pushButton_7 = new QPushButton(tab_2);
-        pushButton_7->setObjectName(QStringLiteral("pushButton_7"));
-        pushButton_7->setMinimumSize(QSize(122, 23));
-        pushButton_7->setMaximumSize(QSize(122, 23));
+        cCancelButton = new QPushButton(tab_2);
+        cCancelButton->setObjectName(QStringLiteral("cCancelButton"));
+        cCancelButton->setMinimumSize(QSize(122, 23));
+        cCancelButton->setMaximumSize(QSize(122, 23));
 
-        gridLayout_6->addWidget(pushButton_7, 3, 3, 1, 1);
+        gridLayout_6->addWidget(cCancelButton, 3, 3, 1, 1);
 
         tabWidget->addTab(tab_2, QString());
 
-        gridLayout->addWidget(tabWidget, 1, 0, 1, 1);
+        gridLayout->addWidget(tabWidget, 1, 1, 1, 1);
 
         MainWindow->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 793, 21));
-        menuTest1 = new QMenu(menuBar);
-        menuTest1->setObjectName(QStringLiteral("menuTest1"));
+        menuBar->setGeometry(QRect(0, 0, 674, 21));
         MainWindow->setMenuBar(menuBar);
         mainToolBar = new QToolBar(MainWindow);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
+        mainToolBar->setEnabled(true);
+        mainToolBar->setMovable(false);
         MainWindow->addToolBar(Qt::TopToolBarArea, mainToolBar);
         statusBar = new QStatusBar(MainWindow);
         statusBar->setObjectName(QStringLiteral("statusBar"));
         MainWindow->setStatusBar(statusBar);
 
-        menuBar->addAction(menuTest1->menuAction());
-        menuTest1->addAction(actionConnect);
-        menuTest1->addAction(actionDisconnect);
+        mainToolBar->addAction(actionConnectDisconnect);
 
         retranslateUi(MainWindow);
 
         tabWidget->setCurrentIndex(1);
-        listWidget->setCurrentRow(-1);
 
 
         QMetaObject::connectSlotsByName(MainWindow);
@@ -273,25 +313,23 @@ public:
     void retranslateUi(QMainWindow *MainWindow)
     {
         MainWindow->setWindowTitle(QApplication::translate("MainWindow", "MainWindow", 0));
-        actionConnect->setText(QApplication::translate("MainWindow", "Connect", 0));
-        actionDisconnect->setText(QApplication::translate("MainWindow", "Disconnect", 0));
-        pushButton_4->setText(QApplication::translate("MainWindow", "Play", 0));
-        pushButton_5->setText(QApplication::translate("MainWindow", "Volume", 0));
-        label_3->setText(QApplication::translate("MainWindow", "                  Song:", 0));
-        label_4->setText(QApplication::translate("MainWindow", "Current Song ~", 0));
+        actionConnectDisconnect->setText(QApplication::translate("MainWindow", "Connect", 0));
+        mPlayButton->setText(QApplication::translate("MainWindow", "Play", 0));
+        mVolumeButton->setText(QApplication::translate("MainWindow", "Volume", 0));
+        mSongLabel->setText(QApplication::translate("MainWindow", "                  Song:", 0));
+        mCurrentSongLabel->setText(QApplication::translate("MainWindow", "Current Song ~", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_5), QApplication::translate("MainWindow", "Multicast", 0));
-        pushButton->setText(QApplication::translate("MainWindow", "Play", 0));
-        pushButton_2->setText(QApplication::translate("MainWindow", "Download", 0));
+        uPlayButton->setText(QApplication::translate("MainWindow", "Play", 0));
+        uDownloadButton->setText(QApplication::translate("MainWindow", "Download", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "Unicast", 0));
-        pushButton_3->setText(QApplication::translate("MainWindow", "Microphone On", 0));
+        micButton->setText(QApplication::translate("MainWindow", "Microphone On", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_3), QApplication::translate("MainWindow", "Microphone", 0));
-        label->setText(QApplication::translate("MainWindow", "Port", 0));
-        label_5->setText(QApplication::translate("MainWindow", "File Path", 0));
-        label_2->setText(QApplication::translate("MainWindow", "IP Address", 0));
-        pushButton_6->setText(QApplication::translate("MainWindow", "OK", 0));
-        pushButton_7->setText(QApplication::translate("MainWindow", "Cancel", 0));
+        cPortLabel->setText(QApplication::translate("MainWindow", "Port", 0));
+        cFilepathLabel->setText(QApplication::translate("MainWindow", "File Path", 0));
+        cIPAddressLabel->setText(QApplication::translate("MainWindow", "IP Address", 0));
+        cOKButton->setText(QApplication::translate("MainWindow", "OK", 0));
+        cCancelButton->setText(QApplication::translate("MainWindow", "Cancel", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "Config.", 0));
-        menuTest1->setTitle(QApplication::translate("MainWindow", "Operations", 0));
     } // retranslateUi
 
 };

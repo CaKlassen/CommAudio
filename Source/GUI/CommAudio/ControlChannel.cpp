@@ -23,6 +23,8 @@
 #include <cstdlib>
 #include <sstream>
 #include "ControlChannel.h"
+#include "Network.h"
+#include "mainwindow.h"
 
 using std::stringstream;
 
@@ -134,6 +136,15 @@ void handleControlMessage(CMessage *cMsg)
 		case START_CONNECTION:
 		{
             // Determine the current server mode
+            if (cMsg->msgData[0].compare("0") == 0)
+            {
+                updateServerMode(MULTICAST);
+            }
+            else
+            {
+                updateServerMode(UNICAST);    
+            }
+            
 			break;
 		}
 

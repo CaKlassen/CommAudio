@@ -6,6 +6,9 @@
 
 #define DATA_BUFSIZE 8192
 
+enum ServerMode { MULTICAST, UNICAST };
+typedef enum ServerMode ServerMode;
+
 struct SOCKET_INFORMATION
 {
 	OVERLAPPED overlapped;
@@ -28,7 +31,7 @@ namespace Server
 	void tearDown();
 	bool isAlive();
 	bool openListener(SOCKET& listenSocket, unsigned short int port);
-	bool acceptConnection(SOCKET listenSocket);
+	bool acceptConnection(SOCKET listenSocket, ServerMode sMode);
 	Client* createClient();
 	bool recv(Client* c);
 	bool send(Client* c, std::string msg, sockaddr_in* sin = nullptr);
