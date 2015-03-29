@@ -47,6 +47,17 @@ QString IP = "default";
 QString filePath = "c:/";
 int port = 4985;
 
+//the characters to be shown when the song is being downloaded or played
+QString downloadAscii = "D";
+QString playAscii = ">";
+
+//colors that are used to depict the state of the song
+QColor playColor = Qt::darkGreen;
+QColor downloadColor = Qt::blue;
+QColor bothColor = Qt::darkMagenta;
+QColor defaultColor = Qt::black;
+
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION:
 --
@@ -89,11 +100,20 @@ MainWindow::MainWindow(QWidget *parent) :
     /* Populates the list widget  */
     for(int i= 1; i < 10; i++)
     {
-        ui->uSongList->addItem("   Song number " + QString::number(i));
+        ui->uSongList->addItem("Song number " + QString::number(i));
+
+        ui->uPlayList->addItem("");
+        ui->uPlayList->item(i-1)->setTextColor(playColor);
+
+        ui->uDownloadList->addItem("");
+        ui->uDownloadList->item(i-1)->setTextColor(downloadColor);
+
         if (i == 1)
             ui->uSongList->setCurrentRow(0);
     }
-
+    ui->uSongList->setFrameShape(QFrame::NoFrame);
+    ui->uPlayList->setFrameShape(QFrame::NoFrame);
+    ui->uDownloadList->setFrameShape(QFrame::NoFrame);
 }
 
 MainWindow::~MainWindow()
@@ -108,11 +128,17 @@ void MainWindow::on_uPlayButton_clicked()
 {
     //This selects the item and then just make it blue
     QListWidgetItem *theItem = ui->uSongList->currentItem();
+    QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
 
-    if (theItem->text().left(3) == "   ")
+    if (playingIcon->text() == "")
     {
-        theItem->setText( " > " + theItem->text().mid(3));
-        theItem->setTextColor(Qt::red);
+        playingIcon->setText(playAscii);
+
+        if (theItem->textColor() == downloadColor)
+            theItem->setTextColor(bothColor);
+        else
+            theItem->setTextColor(playColor);
+
 
         currentMusic = ui->uSongList->currentRow();
     }
@@ -123,12 +149,16 @@ void MainWindow::on_uPlayButton_clicked()
         for(int i = 0; i < ui->uSongList->count(); ++i)
         {
             QListWidgetItem *allItems = ui->uSongList->item(i);
-            if (allItems->text().left(3) == " > " && currentMusic != i)
+            QListWidgetItem *playingIcons = ui->uPlayList->item(i);
+            if (playingIcons->text() == playAscii && currentMusic != i)
             {
-                allItems->setText( "   " + theItem->text().mid(3));
-                allItems->setTextColor(Qt::black);
-            }
+                playingIcons->setText("");
 
+                if (allItems->textColor() == bothColor)
+                    allItems->setTextColor(downloadColor);
+                else
+                    allItems->setTextColor(defaultColor);
+            }
         }
     }
 
@@ -140,12 +170,41 @@ void MainWindow::on_uPlayButton_clicked()
 
 void MainWindow::on_uDownloadButton_clicked()
 {
+    //This selects the item and then just make it blue
     QListWidgetItem *theItem = ui->uSongList->currentItem();
+    QListWidgetItem *playingIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
 
-    /* PopUp message */
-    QMessageBox pop;
-    pop.setText(theItem->text() + " is downloading");
-    pop.exec();
+    if (playingIcon->text() == "")
+    {
+        playingIcon->setText(downloadAscii);
+
+        if (theItem->textColor() == playColor)
+            theItem->setTextColor(bothColor);
+        else
+            theItem->setTextColor(downloadColor);
+
+        currentMusic = ui->uSongList->currentRow();
+    }
+
+    //all items on the list will be reverted back to normal
+    if (true)
+    {
+        for(int i = 0; i < ui->uSongList->count(); ++i)
+        {
+            QListWidgetItem *allItems = ui->uSongList->item(i);
+            QListWidgetItem *downloadingIcons = ui->uDownloadList->item(i);
+            if (downloadingIcons->text() == downloadAscii && currentMusic != i)
+            {
+                downloadingIcons->setText("");
+
+
+                if (allItems->textColor() == bothColor)
+                    allItems->setTextColor(playColor);
+                else
+                    allItems->setTextColor(defaultColor);
+            }
+        }
+    }
 
 }
 
@@ -218,7 +277,7 @@ void MainWindow::setTracklist(vector<string> *songs)
         tracklist.emplace_back(songs->at(i));
 
         // Update the tracklist GUI component
-        ui->uSongList->addItem("   " + QString::fromStdString(songs->at(i)));
+        ui->uSongList->addItem(QString::fromStdString(songs->at(i)));
     }
 
 }
