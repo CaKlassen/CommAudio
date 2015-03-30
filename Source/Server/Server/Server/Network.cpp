@@ -38,7 +38,7 @@ bool isAlive = false;
 
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port)
 {
-	sin = {};
+	//sin = {};
 	sin.sin_family = AF_INET;   // Specify the Internet (TCP/IP) Address family
 	sin.sin_port = htons(port); // Convert to network byte order
 
@@ -184,7 +184,7 @@ bool Server::recv(Client* c)
 	DWORD bytesReceived = 0;
 	DWORD flags = 0;
 
-	c->socketinfo.overlapped = {};
+	//c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
@@ -207,7 +207,7 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 {
 	DWORD bytesSent = 0;
 
-	c->socketinfo.overlapped = {};
+	//c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
 	strcpy_s(c->socketinfo.buffer, msg.c_str());
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;

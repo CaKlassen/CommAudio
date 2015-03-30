@@ -140,6 +140,13 @@ void connectControlChannel(ClientState *cData)
 ----------------------------------------------------------------------------------------------------------------------*/
 void connectMusic(ClientState *cData)
 {
+    WSADATA stWSAData;
+    if (WSAStartup(0x0202, &stWSAData) != 0)
+    {
+        cerr << "Failed to start WinSock." << endl;
+        exit(1);
+    }
+    
     if (cData->sMode == UNICAST)
     {
         // Our functionality exists based on GUI elements and callbacks;
@@ -168,7 +175,7 @@ void connectMusic(ClientState *cData)
     // Bind the socket
     multicastInfo.sin_family = AF_INET;
     multicastInfo.sin_addr.s_addr = htonl(INADDR_ANY);
-    multicastInfo.sin_port = htons(9000);//cData->port);
+    multicastInfo.sin_port = htons(8000);//cData->port);
 
     if (bind(multicastSocket, (struct sockaddr*) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
     {

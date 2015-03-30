@@ -1,6 +1,7 @@
 #ifndef MUSIC_BUFFER_H_
 #define MUSIC_BUFFER_H_
 
+
 /* The libvlc options string used to create an instance of the streamer */
 #define VLC_OPTIONS "#transcode{acodec=s16l,samplerate=44100,channels=2}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}"
 
@@ -30,6 +31,5 @@ class MusicBuffer
         char buffer[BUFFER_SIZE];
         int endPosition;
 };
-
 
 #endif
