@@ -266,7 +266,7 @@ bool startMulticast()
 		return false;
 	}
 
-	u_long ttl = 2;
+	u_long ttl = 10;
 	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl)) == SOCKET_ERROR)
 	{
 		cerr << "Failed to set time to live." << endl;
@@ -282,7 +282,7 @@ bool startMulticast()
 
 	multicastDestInfo.sin_addr.s_addr = inet_addr(MULTICAST_ADDR);
 	multicastDestInfo.sin_family = AF_INET;
-	multicastDestInfo.sin_port = 8000;//port;
+	multicastDestInfo.sin_port = htons((port - 1));
 
 	// Play music in a loop
 	if (!playMulticast())
@@ -345,14 +345,19 @@ bool playMulticast()
 			// Wait for the song to start
 		}
 
+		char testBuffer[MESSAGE_SIZE];
+		for (int i = 0; i < MESSAGE_SIZE; i++)
+		{
+			testBuffer[i] = 'a';
+		}
+
 		// While we are not done and there is data left to send
 		while (!done && libvlc_media_player_is_playing(mediaPlayer))
 		{
 			// Send part of the song to the multicast socket
-			char testBuffer[] = "Testing";
-			sendto(multicastSocket, testBuffer, strlen(testBuffer), 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+			sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
 			
-			cout << "Sent data." << endl;
+			cout << "Sent data @ " << MESSAGE_SIZE << " bytes." << endl;
 
 			Sleep(1000);
 		}

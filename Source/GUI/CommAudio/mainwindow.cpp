@@ -86,7 +86,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Set up the client data structure
     cData.ip = "127.0.0.1";
-    cData.port = 7000;
+    cData.port = 9000;
     cData.connected = false;
     cData.sMode = MULTICAST;//NOTHING;
 
@@ -117,6 +117,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+    WSACleanup();
+    
     delete ui;
 }
 
@@ -309,6 +311,9 @@ void MainWindow::on_cOKButton_clicked()
     IP = ui->cIPAddressText->text();
     port = ui->cPortText->text().toInt();
     filePath = ui->cFilepathText->text();
+    
+    cData.ip = IP.toStdString();
+    cData.port = port;
 }
 
 //this is the button cancel on the config tab
