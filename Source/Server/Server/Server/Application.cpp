@@ -20,13 +20,17 @@
 #include "Application.h"
 
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 #include <map>
 #include <thread>
+#include <WS2tcpip.h>
+
 #include "dirent.h"
 
 #include "Network.h"
 #include "ControlChannel.h"
+#include "MusicBuffer.h"
 
 using std::cout;
 using std::cerr;
@@ -34,6 +38,7 @@ using std::endl;
 using std::vector;
 using std::map;
 using std::string;
+using std::stringstream;
 
 // Server variables
 ServerMode sMode;
@@ -42,8 +47,17 @@ int port;
 vector<string> tracklist;
 bool done = false;
 
+// Audio variable
+libvlc_instance_t *inst;
+libvlc_media_player_t *mediaPlayer;
+libvlc_media_t *media;
+
 // Socket variables
 WSADATA wsaData;
+SOCKET multicastSocket;
+SOCKADDR_IN multicastInfo;
+SOCKADDR_IN multicastDestInfo;
+struct ip_mreq multicastInterface;
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: main
@@ -79,6 +93,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	// Randomize the seed
+	srand(time(NULL));
+
 	sMode = (ServerMode)atoi(argv[1]);
 	port = atoi(argv[2]);
 
@@ -96,6 +113,9 @@ int main(int argc, char* argv[])
 		return 1;
 #endif
 	}
+
+	// Start LibVLC
+	startLibVLC();
 
 	// Open the TCP listener
 	if (!Server::openListener(listeningSocket, port))
@@ -127,6 +147,9 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 	}
+	
+	// Release LibVLC
+	libvlc_release(inst);
 
 	// Stop WinSock
 	WSACleanup();
@@ -220,8 +243,49 @@ bool loadTracklist(vector<string> *tlist, string location)
 bool startMulticast()
 {
 	// Open the multicast socket
+	if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to open multicast socket." << endl;
+		return false;
+	}
+
+	multicastInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+	multicastInfo.sin_family = AF_INET;
+	multicastInfo.sin_port = 0;
+	
+	if (bind(multicastSocket, (struct sockaddr *) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to bind multicast socket." << endl;
+		return false;
+	}
 
 	// Connect to the multicast group
+	multicastInterface.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
+	multicastInterface.imr_interface.s_addr = INADDR_ANY;
+
+	if (setsockopt(multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastInterface, sizeof(multicastInterface)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to create multicast group." << endl;
+		return false;
+	}
+
+	u_long ttl = 10;
+	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to set time to live." << endl;
+		return false;
+	}
+
+	bool loopback = false;
+	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *)&loopback, sizeof(loopback)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to set loopback." << endl;
+		return false;
+	}
+
+	multicastDestInfo.sin_addr.s_addr = inet_addr(MULTICAST_ADDR);
+	multicastDestInfo.sin_family = AF_INET;
+	multicastDestInfo.sin_port = htons((port - 1));
 
 	// Play music in a loop
 	if (!playMulticast())
@@ -260,17 +324,42 @@ bool playMulticast()
 		int randSong = rand() % tracklist.size();
 
 		// Open the song file
+		stringstream ss;
+		ss << MUSIC_LOCATION << "/" << tracklist[randSong];
+		libvlc_media_t *media = libvlc_media_new_path(inst, ss.str().c_str());
+
+		if (media == NULL)
+		{
+			cerr << "Failed to load music." << endl;
+			return false;
+		}
+
+		// Play the audio
+		mediaPlayer = libvlc_media_player_new_from_media(media);
+		libvlc_media_release(media);
+		libvlc_media_player_play(mediaPlayer);
 
 		// Start the Send Current Song thread
 		std::thread tCurrentSong(sendCurrentSongMulti, randSong);
 		tCurrentSong.detach();
 
-		// While we are not done and there is data left to send
-		while (!done)
+		while (!libvlc_media_player_is_playing(mediaPlayer))
 		{
-			// Send part of the song to the multicast socket
+			// Wait for the song to start
 		}
 
+		// While we are not done and there is data left to send
+		while (!done && libvlc_media_player_is_playing(mediaPlayer))
+		{
+			// Send part of the song to the multicast socket
+			//sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+			
+			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
+
+			Sleep(1000);
+		}
+
+		libvlc_media_player_release(mediaPlayer);
 
 		// Reload the tracklist
 		if (!done)
@@ -375,6 +464,7 @@ void saveUnicast(Client *c, string ip, string song)
 	tSendUnicast.detach();
 }
 
+
 void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
 	CMessage cMsg;
@@ -389,6 +479,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 
 	// loop until all of the song is sent
 }
+
 
 void thread_runserver()
 {
@@ -430,4 +521,140 @@ bool startUnicast()
 	Server::tearDown();
 
 	return true;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: startLibVLC
+--
+-- DATE: March 29, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void startLibVLC();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function initializes LibVLC.
+----------------------------------------------------------------------------------------------------------------------*/
+void startLibVLC()
+{
+	char smem_options[256];
+
+	// Write the command line string to the char array
+	sprintf(smem_options, VLC_OPTIONS, (long long int)(intptr_t)(void*) &handleStream, (long long int)(intptr_t)(void*) &prepareRender);
+
+	const char* const vlc_args[] = { "-I", "dummy", "--verbose=0", "--sout", smem_options };
+
+	// Create an instance of libvlc
+	if ((inst = libvlc_new(sizeof(vlc_args) / sizeof(vlc_args[0]), vlc_args)) == NULL)
+	{
+		cerr << "Failed to create libvlc instance." << endl;
+		exit(1);
+	}
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: prepareRender
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer , size_t size);
+--
+-- PARAMETERS:
+--		p_audio_data - not used
+--		pp_pcm_buffer - a pointer to the location of the audio stream
+--		size - the size of the required buffer
+--
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is called before audio is streamed to allocate memory for the buffer.
+----------------------------------------------------------------------------------------------------------------------*/
+void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer, size_t size)
+{
+	// Allocate memory to the buffer
+	*pp_pcm_buffer = (uint8_t*)malloc(size);
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: handleStream
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels,
+--				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts )
+--
+-- PARAMETERS:
+--		p_audio_data - not used
+--		p_pcm_buffer - a pointer to the location of the stream buffer
+--		channels - the number of channels used
+--		rate - the bitrate of the audio
+--		nb_samples - the number of samples per second for the audio
+--		bits_per_sample - the number of bits per audio sample (bit depth)
+--		size - the length of the buffer
+--		pts - not used
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is called after audio is streamed and is used to write data to the buffer.
+----------------------------------------------------------------------------------------------------------------------*/
+void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels,
+	unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts)
+{
+	char *buffer;
+	int dataSize = size;
+	int messageSize;
+	int dataSent = 0;
+
+	// While we have data to write
+	while (dataSize > 0)
+	{
+		// Set the size of the next message to send
+		if (dataSize > MESSAGE_SIZE)
+		{
+			messageSize = MESSAGE_SIZE;
+		}
+		else
+		{
+			messageSize = dataSize;
+		}
+
+		// Write the data to the socket
+		buffer = new char[dataSize];
+		memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
+
+		sendto(multicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+
+		dataSize -= messageSize;
+		dataSent += messageSize;
+
+		delete[] buffer;
+	}
+
+	// Free the temporary stream buffer
+	free(p_pcm_buffer);
 }

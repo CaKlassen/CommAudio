@@ -20,8 +20,5 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
 
-    // Stop WinSock
-    WSACleanup();
-
     return a.exec();
 }

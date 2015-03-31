@@ -20,17 +20,20 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <WinSock2.h>
+#include <thread>
 #include <ws2tcpip.h>
+
+#include "mainwindow.h"
 #include "Network.h"
+#include "MusicBuffer.h"
 
 using std::cerr;
+using std::cout;
 using std::endl;
 
 // Network Variables
 SOCKET controlSocket;
 SOCKADDR_IN controlInfo;
-char musicBuffer[BUFFER_SIZE];
 
 // Unicast Variables
 SOCKET unicastStreamSocket;
@@ -75,14 +78,14 @@ void connectControlChannel(ClientState *cData)
     char *host;
 
     host = (char *) cData->ip.c_str();
-    port = 9000;//cData->port;
+    port = cData->port;
     
-    WSADATA stWSAData;
-    if (WSAStartup(0x0202, &stWSAData) != 0)
-    {
-        cerr << "Failed to start WinSock." << endl;
-        exit(1);
-    }
+//    WSADATA stWSAData;
+//    if (WSAStartup(0x0202, &stWSAData) != 0)
+//    {
+//        cerr << "Failed to start WinSock." << endl;
+//        exit(1);
+//    }
     
     // Create the socket
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -137,15 +140,15 @@ void connectControlChannel(ClientState *cData)
 --     This function is responsible for initiating the connection process when
 --     the connect button is pressed on the Music tab.
 ----------------------------------------------------------------------------------------------------------------------*/
-void connectMusic(ClientState *cData)
-{
+void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
+{ 
     if (cData->sMode == UNICAST)
     {
         // Our functionality exists based on GUI elements and callbacks;
         // we don't need to be here
         return;
     }
-
+   
     // Open the multicast socket
     if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
@@ -167,7 +170,7 @@ void connectMusic(ClientState *cData)
     // Bind the socket
     multicastInfo.sin_family = AF_INET;
     multicastInfo.sin_addr.s_addr = htonl(INADDR_ANY);
-    multicastInfo.sin_port = htons(cData->port);
+    multicastInfo.sin_port = htons((cData->port - 1));
 
     if (bind(multicastSocket, (struct sockaddr*) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
     {
@@ -177,7 +180,7 @@ void connectMusic(ClientState *cData)
     }
 
     // Join the Multicast Session
-    multicastInterface.imr_multiaddr.s_addr = inet_addr(cData->ip.c_str());
+    multicastInterface.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
     multicastInterface.imr_interface.s_addr = INADDR_ANY;
 
     if (setsockopt(multicastSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP,
@@ -188,17 +191,27 @@ void connectMusic(ClientState *cData)
         exit(1);
     }
 
-    while (cData->connected)
+    // Start streaming the audio
+    std::thread streamThread(outputAudio, musicBuffer);
+    streamThread.detach();
+    
+    while (!cData->connected)
     {
         // Receive data from the server
         int infoSize = sizeof(struct sockaddr_in);
 
-        if (recvfrom(multicastSocket, musicBuffer, MESSAGE_SIZE,
-            0, (struct sockaddr*) &multicastServerInfo, &infoSize) < 0)
+        int numReceived = 0;
+        char tempBuffer[MESSAGE_SIZE];
+        
+        if ((numReceived = recvfrom(multicastSocket, tempBuffer, MESSAGE_SIZE,
+            0, (struct sockaddr*) &multicastServerInfo, &infoSize)) < 0)
         {
             cerr << "Error reading data from multicast socket." << endl;
             continue;
         }
+        
+        // Add the data to the buffer
+        musicBuffer->put(tempBuffer, numReceived);
     }
 }
 
