@@ -44,16 +44,16 @@ using std::endl;
 string currentSong;
 int songLength;
 vector<string> tracklist;
+QString filePath = "c:/";
 
 MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
 
 ClientState cData;
 
-//default settings as of now
-QString IP = "default";
-QString filePath = "c:/";
-int port = 4985;
+//the play button
+int starting = 0;
+int currentMusic = -1;
 
 //the characters to be shown when the song is being downloaded or played
 QString downloadAscii = "D";
@@ -97,14 +97,12 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.ip = "127.0.0.1";
     cData.port = 9000;
     cData.connected = false;
-    cData.sMode = MULTICAST;//NOTHING;
+    cData.sMode = MULTICAST;
 
-    IP = QString::fromStdString(cData.ip);
-    port = cData.port;
-
-    ui->cIPAddressText->setText(IP);
-    ui->cPortText->setText(QString::number(port));
+    ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
+    ui->cPortText->setText(QString::number(cData.port));
     ui->cFilepathText->setText(filePath);
+    
     /* Populates the list widget  */
     for(int i= 1; i < 10; i++)
     {
@@ -131,9 +129,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-//the play button
-int starting = 0;
-int currentMusic = -1;
+
 void MainWindow::on_uPlayButton_clicked()
 {
     //This selects the item and then just make it blue
@@ -317,21 +313,18 @@ void MainWindow::on_actionConnectDisconnect_triggered()
 //this is the button Ok on the config tab
 void MainWindow::on_cOKButton_clicked()
 {
-    IP = ui->cIPAddressText->text();
-    port = ui->cPortText->text().toInt();
     filePath = ui->cFilepathText->text();
     
-    cData.ip = IP.toStdString();
-    cData.port = port;
+    cData.ip = ui->cIPAddressText->text().toStdString();
+    cData.port = ui->cPortText->text().toInt();
 }
 
 //this is the button cancel on the config tab
 void MainWindow::on_cCancelButton_clicked()
 {
-    ui->cIPAddressText->setText(IP);
-    ui->cPortText->setText(QString::number(port));
+    ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
+    ui->cPortText->setText(QString::number(cData.port));
     ui->cFilepathText->setText(filePath);
-
 }
 
 void MainWindow::connectIt()

@@ -79,14 +79,7 @@ void connectControlChannel(ClientState *cData)
 
     host = (char *) cData->ip.c_str();
     port = cData->port;
-    
-//    WSADATA stWSAData;
-//    if (WSAStartup(0x0202, &stWSAData) != 0)
-//    {
-//        cerr << "Failed to start WinSock." << endl;
-//        exit(1);
-//    }
-    
+       
     // Create the socket
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
