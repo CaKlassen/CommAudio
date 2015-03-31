@@ -630,6 +630,8 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 	int messageSize;
 	int dataSent = 0;
 
+	//cout << p_pcm_buffer << endl;
+
 	// While we have data to write
 	while (dataSize > 0)
 	{

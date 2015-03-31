@@ -184,12 +184,8 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
         int numReceived = 0;
         char tempBuffer[MESSAGE_SIZE];
         
-        if ((numReceived = recvfrom(multicastSocket, tempBuffer, MESSAGE_SIZE,
-            0, (struct sockaddr*) &multicastServerInfo, &infoSize)) < 0)
-        {
-            cerr << "Error reading data from multicast socket." << endl;
-            continue;
-        }
+        numReceived = recvfrom(multicastSocket, tempBuffer, MESSAGE_SIZE,
+            0, (struct sockaddr*) &multicastServerInfo, &infoSize);
         
         // Add the data to the buffer
         musicBuffer->put(tempBuffer, numReceived);
