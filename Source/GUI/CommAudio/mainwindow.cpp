@@ -346,15 +346,14 @@ void MainWindow::connectIt()
         else if (cData.sMode == MULTICAST && (mode==0 || mode==1))
         {
             focusTab(0);
+            std::thread streamThread(connectMusic, &cData, &musicBuffer);
+            streamThread.detach();
         }
         //if its neither multicast or unicast
         else
         {
             focusTab(mode);
         }
-        
-        std::thread streamThread(connectMusic, &cData, &musicBuffer);
-        streamThread.detach();
     }
 }
 

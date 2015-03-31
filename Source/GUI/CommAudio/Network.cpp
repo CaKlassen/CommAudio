@@ -134,14 +134,7 @@ void connectControlChannel(ClientState *cData)
 --     the connect button is pressed on the Music tab.
 ----------------------------------------------------------------------------------------------------------------------*/
 void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
-{ 
-    if (cData->sMode == UNICAST)
-    {
-        // Our functionality exists based on GUI elements and callbacks;
-        // we don't need to be here
-        return;
-    }
-   
+{
     // Open the multicast socket
     if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
