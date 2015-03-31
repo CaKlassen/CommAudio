@@ -71,7 +71,7 @@ struct ip_mreq multicastInterface;
 --     This function is responsible for connecting the client to the server
 --     via a TCP control channel.
 ----------------------------------------------------------------------------------------------------------------------*/
-void connectControlChannel(ClientState *cData)
+bool connectControlChannel(ClientState *cData)
 {
     int port;
     struct hostent *hp;
@@ -84,8 +84,7 @@ void connectControlChannel(ClientState *cData)
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         cerr << "Failed to open control socket." << endl;
-        WSACleanup();
-        exit(1);
+        return false;
     }
 
     // Initialize and set up the address structure
@@ -95,8 +94,7 @@ void connectControlChannel(ClientState *cData)
     if ((hp = gethostbyname(host)) == NULL)
     {
         cerr << "Failed to identify server host." << endl;
-        WSACleanup();
-        exit(1);
+        return false;
     }
 
     // Copy the server address
@@ -106,9 +104,10 @@ void connectControlChannel(ClientState *cData)
     if (::connect(controlSocket, (struct sockaddr *)&controlInfo, sizeof(controlInfo)) == -1)
     {
         cerr << "Failed to connect to the server." << endl;
-        WSACleanup();
-        return;
+        return false;
     }
+    
+    return true;
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -133,15 +132,14 @@ void connectControlChannel(ClientState *cData)
 --     This function is responsible for initiating the connection process when
 --     the connect button is pressed on the Music tab.
 ----------------------------------------------------------------------------------------------------------------------*/
-void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
+bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
 {
     // Open the multicast socket
     if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
         // The socket failed to be created
         cerr << "Failed to create multicast socket." << endl;
-        WSACleanup();
-        exit(1);
+        return false;
     }
 
     // Set the REUSEADDR flag
@@ -149,8 +147,7 @@ void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
     if (setsockopt(multicastSocket, SOL_SOCKET, SO_REUSEADDR, (char *) &optionFlag, sizeof(optionFlag)) == SOCKET_ERROR)
     {
         cerr << "Failed to set REUSEADDR flag on multicast socket." << endl;
-        WSACleanup();
-        exit(1);
+        return false;
     }
 
     // Bind the socket
@@ -161,8 +158,7 @@ void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
     if (bind(multicastSocket, (struct sockaddr*) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
     {
         cerr << "Failed to bind multicast socket" << endl;
-        WSACleanup();
-        exit(1);
+        return false;
     }
 
     // Join the Multicast Session
@@ -173,8 +169,7 @@ void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
         (char *) &multicastInterface, sizeof(multicastInterface)) == SOCKET_ERROR)
     {
         cerr << "Failed to join multicast session." << endl;
-        WSACleanup();
-        exit(1);
+        return false;
     }
 
     // Start streaming the audio
@@ -199,6 +194,8 @@ void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
         // Add the data to the buffer
         musicBuffer->put(tempBuffer, numReceived);
     }
+    
+    return true;
 }
 
 

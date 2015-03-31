@@ -44,7 +44,7 @@ using std::endl;
 string currentSong;
 int songLength;
 vector<string> tracklist;
-QString filePath = "c:/";
+QString filePath = "C:/";
 
 MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
@@ -334,7 +334,11 @@ void MainWindow::connectIt()
     //make sure connect does not work on the configuration
     if (ui->tabWidget->tabText(mode) != "Config.")
     {
-        connectControlChannel(&cData);
+        // Connect to the control channel
+        if (!connectControlChannel(&cData))
+        {
+            return;
+        }
         
         //check if its unicast
         if (cData.sMode == UNICAST && (mode == 0 || mode==1))
