@@ -135,7 +135,7 @@ void MusicBuffer::put(char *data, int dataSize)
 ----------------------------------------------------------------------------------------------------------------------*/
 bool MusicBuffer::ready()
 {
-	if (endPosition >= MESSAGE_SIZE * 2)
+	if (endPosition >= MESSAGE_SIZE * 5)
 	{
 		return true;
 	}

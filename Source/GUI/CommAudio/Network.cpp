@@ -79,14 +79,7 @@ void connectControlChannel(ClientState *cData)
 
     host = (char *) cData->ip.c_str();
     port = cData->port;
-    
-//    WSADATA stWSAData;
-//    if (WSAStartup(0x0202, &stWSAData) != 0)
-//    {
-//        cerr << "Failed to start WinSock." << endl;
-//        exit(1);
-//    }
-    
+       
     // Create the socket
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -141,14 +134,7 @@ void connectControlChannel(ClientState *cData)
 --     the connect button is pressed on the Music tab.
 ----------------------------------------------------------------------------------------------------------------------*/
 void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
-{ 
-    if (cData->sMode == UNICAST)
-    {
-        // Our functionality exists based on GUI elements and callbacks;
-        // we don't need to be here
-        return;
-    }
-   
+{
     // Open the multicast socket
     if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
