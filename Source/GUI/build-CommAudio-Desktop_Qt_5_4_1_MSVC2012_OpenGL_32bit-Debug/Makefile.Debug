@@ -17,7 +17,7 @@ CXXFLAGS      = -nologo -Zm200 -Zc:wchar_t -Zi -MDd -GR -W3 -w34100 -w34189 -EHs
 INCPATH       = -I"..\CommAudio" -I"." -I"C:\Qt\5.4\msvc2012_opengl\include" -I"C:\Qt\5.4\msvc2012_opengl\include\QtWidgets" -I"C:\Qt\5.4\msvc2012_opengl\include\QtGui" -I"C:\Qt\5.4\msvc2012_opengl\include\QtCore" -I"debug" -I"." -I"C:\Qt\5.4\msvc2012_opengl\mkspecs\win32-msvc2012" 
 LINKER        = link
 LFLAGS        = /NOLOGO /DYNAMICBASE /NXCOMPAT /DEBUG /SUBSYSTEM:WINDOWS "/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'"
-LIBS          = glu32.lib opengl32.lib gdi32.lib user32.lib /LIBPATH:C:\Qt\5.4\msvc2012_opengl\lib C:\Qt\5.4\msvc2012_opengl\lib\qtmaind.lib shell32.lib ws2_32.lib C:\Qt\5.4\msvc2012_opengl\lib\Qt5Widgetsd.lib C:\Qt\5.4\msvc2012_opengl\lib\Qt5Guid.lib C:\Qt\5.4\msvc2012_opengl\lib\Qt5Cored.lib 
+LIBS          = glu32.lib opengl32.lib gdi32.lib user32.lib /LIBPATH:C:\Qt\5.4\msvc2012_opengl\lib C:\Qt\5.4\msvc2012_opengl\lib\qtmaind.lib shell32.lib ws2_32.lib winmm.lib C:\Qt\5.4\msvc2012_opengl\lib\Qt5Widgetsd.lib C:\Qt\5.4\msvc2012_opengl\lib\Qt5Guid.lib C:\Qt\5.4\msvc2012_opengl\lib\Qt5Cored.lib 
 QMAKE         = C:\Qt\5.4\msvc2012_opengl\bin\qmake.exe
 IDC           = idc
 IDL           = midl
@@ -291,6 +291,7 @@ debug\moc_mainwindow.cpp: C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\QMainWindo
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\qtabwidget.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtGui\qicon.h \
 		..\CommAudio\Network.h \
+		..\CommAudio\MusicBuffer.h \
 		..\CommAudio\mainwindow.h
 	C:\Qt\5.4\msvc2012_opengl\bin\moc.exe $(DEFINES) -D_MSC_VER=1700 -D_WIN32 -IC:/Qt/5.4/msvc2012_opengl/mkspecs/win32-msvc2012 -IC:/Users/Chris/Desktop/CommAudio/Source/GUI/CommAudio -IC:/Qt/5.4/msvc2012_opengl/include -IC:/Qt/5.4/msvc2012_opengl/include/QtWidgets -IC:/Qt/5.4/msvc2012_opengl/include/QtGui -IC:/Qt/5.4/msvc2012_opengl/include/QtCore -I. ..\CommAudio\mainwindow.h -o debug\moc_mainwindow.cpp
 
@@ -421,6 +422,7 @@ debug\main.obj: ..\CommAudio\main.cpp ..\CommAudio\mainwindow.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\qtabwidget.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtGui\qicon.h \
 		..\CommAudio\Network.h \
+		..\CommAudio\MusicBuffer.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\QApplication \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\qapplication.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtCore\qcoreapplication.h \
@@ -561,6 +563,7 @@ debug\mainwindow.obj: ..\CommAudio\mainwindow.cpp ..\CommAudio\mainwindow.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\qtabwidget.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtGui\qicon.h \
 		..\CommAudio\Network.h \
+		..\CommAudio\MusicBuffer.h \
 		ui_mainwindow.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtCore\QVariant \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\QAction \
@@ -630,6 +633,7 @@ debug\mainwindow.obj: ..\CommAudio\mainwindow.cpp ..\CommAudio\mainwindow.h \
 debug\ControlChannel.obj: ..\CommAudio\ControlChannel.cpp ..\CommAudio\ControlChannel.h \
 		..\CommAudio\CMessage.h \
 		..\CommAudio\Network.h \
+		..\CommAudio\MusicBuffer.h \
 		..\CommAudio\mainwindow.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\QMainWindow \
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\qmainwindow.h \
@@ -737,7 +741,8 @@ debug\ControlChannel.obj: ..\CommAudio\ControlChannel.cpp ..\CommAudio\ControlCh
 		C:\Qt\5.4\msvc2012_opengl\include\QtWidgets\qtabwidget.h \
 		C:\Qt\5.4\msvc2012_opengl\include\QtGui\qicon.h
 
-debug\Network.obj: ..\CommAudio\Network.cpp ..\CommAudio\Network.h
+debug\Network.obj: ..\CommAudio\Network.cpp ..\CommAudio\Network.h \
+		..\CommAudio\MusicBuffer.h
 
 debug\MusicBuffer.obj: ..\CommAudio\MusicBuffer.cpp ..\CommAudio\MusicBuffer.h
 

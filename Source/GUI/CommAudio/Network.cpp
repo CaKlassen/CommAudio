@@ -20,9 +20,12 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <WinSock2.h>
+#include <thread>
 #include <ws2tcpip.h>
+
+#include "mainwindow.h"
 #include "Network.h"
+#include "MusicBuffer.h"
 
 using std::cerr;
 using std::cout;
@@ -31,7 +34,6 @@ using std::endl;
 // Network Variables
 SOCKET controlSocket;
 SOCKADDR_IN controlInfo;
-char musicBuffer[BUFFER_SIZE];
 
 // Unicast Variables
 SOCKET unicastStreamSocket;
@@ -138,22 +140,15 @@ void connectControlChannel(ClientState *cData)
 --     This function is responsible for initiating the connection process when
 --     the connect button is pressed on the Music tab.
 ----------------------------------------------------------------------------------------------------------------------*/
-void connectMusic(ClientState *cData)
-{
-//    WSADATA stWSAData;
-//    if (WSAStartup(0x0202, &stWSAData) != 0)
-//    {
-//        cerr << "Failed to start WinSock." << endl;
-//        exit(1);
-//    }
-    
+void connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
+{ 
     if (cData->sMode == UNICAST)
     {
         // Our functionality exists based on GUI elements and callbacks;
         // we don't need to be here
         return;
     }
-
+   
     // Open the multicast socket
     if ((multicastSocket = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET)
     {
@@ -196,19 +191,27 @@ void connectMusic(ClientState *cData)
         exit(1);
     }
 
+    // Start streaming the audio
+    std::thread streamThread(outputAudio, musicBuffer);
+    streamThread.detach();
+    
     while (!cData->connected)
     {
         // Receive data from the server
         int infoSize = sizeof(struct sockaddr_in);
 
-        if (recvfrom(multicastSocket, musicBuffer, MESSAGE_SIZE,
-            0, (struct sockaddr*) &multicastServerInfo, &infoSize) < 0)
+        int numReceived = 0;
+        char tempBuffer[MESSAGE_SIZE];
+        
+        if ((numReceived = recvfrom(multicastSocket, tempBuffer, MESSAGE_SIZE,
+            0, (struct sockaddr*) &multicastServerInfo, &infoSize)) < 0)
         {
             cerr << "Error reading data from multicast socket." << endl;
             continue;
         }
         
-        cout << musicBuffer << endl;
+        // Add the data to the buffer
+        musicBuffer->put(tempBuffer, numReceived);
     }
 }
 

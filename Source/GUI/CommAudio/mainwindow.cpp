@@ -24,20 +24,29 @@
 #include <QMessageBox>
 #include <QSlider>
 #include <vector>
+#include <iostream>
+#include <thread>
 #include <stdio.h>
-#include <winsock2.h>
+//#include <winsock2.h>
 #include <errno.h>
+
+#include "MusicBuffer.h"
 
 
 #define BUFSIZE 8192
 
 using std::string;
 using std::vector;
+using std::cerr;
+using std::endl;
 
 // Client variables
 string currentSong;
 int songLength;
 vector<string> tracklist;
+
+MusicBuffer musicBuffer;
+HWAVEOUT outputDevice;
 
 ClientState cData;
 
@@ -351,7 +360,8 @@ void MainWindow::connectIt()
             focusTab(mode);
         }
         
-        connectMusic(&cData);
+        std::thread streamThread(connectMusic, &cData, &musicBuffer);
+        streamThread.detach();
     }
 }
 
@@ -420,4 +430,114 @@ void MainWindow::errorMessage(QString message)
 void updateServerMode(ServerMode sMode)
 {
     cData.sMode = sMode;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: outputAudio
+--
+-- DATE: March 30, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void outputAudio(MusicBuffer *buffer);
+--
+-- PARAMETERS:
+--      buffer - a pointer to the music buffer to stream from
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function uses WAVEOUT structures to play audio from a buffer.
+----------------------------------------------------------------------------------------------------------------------*/
+void outputAudio(MusicBuffer *buffer)
+{
+    WAVEFORMATEX format;
+    
+    LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
+
+    // Set up the wave format
+    format.nSamplesPerSec = 44100;
+    format.wBitsPerSample = 16;
+    format.nChannels = 2;
+    format.cbSize = 0;
+    format.wFormatTag = WAVE_FORMAT_PCM;
+    format.nBlockAlign = format.nChannels * (format.wBitsPerSample / 8);
+    format.nAvgBytesPerSec = format.nSamplesPerSec * format.wBitsPerSample;
+
+    // Open the output device
+    if (waveOutOpen(&outputDevice, WAVE_MAPPER, &format, (DWORD) WaveCallback, NULL, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
+    {
+        cerr << "Failed to open output device." << endl;
+        exit(1);
+    }
+
+    // Prepare the wave headers
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        audioBuffers[i] = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
+        ZeroMemory(audioBuffers[i], sizeof(WAVEHDR));
+
+        audioBuffers[i]->lpData = buffer->getBuffer();
+        audioBuffers[i]->dwBufferLength = BUFFER_SIZE;
+
+        // Create the header
+        if (waveOutPrepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        {
+            cerr << "Failed to create output header." << endl;
+            exit(1);
+        }
+    }
+
+    while (!buffer->ready())
+    {
+        // Wait for the buffer to be ready to stream
+    }
+    
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        waveOutWrite(outputDevice, audioBuffers[i], sizeof(WAVEHDR));
+    }
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: WaveCallback
+--
+-- DATE: March 24, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void CALLBACK AudioCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
+--
+-- PARAMETERS:
+--		hWave - a handle to the output device
+--		uMsg - the message sent to the callback
+--		dwUser - not used
+--		dw1 - the wave header used for audio output
+--		dw2 - not used
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This callback is ued to properly stream audio without skipping.
+----------------------------------------------------------------------------------------------------------------------*/
+void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
+{
+	if (uMsg == WOM_DONE)
+	{
+		if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+		{
+			cerr << "Failed to play audio." << endl;
+			exit(1);
+		}
+	}
 }

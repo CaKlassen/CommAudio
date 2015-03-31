@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <vector>
+#include <winsock2.h>
 #include "Network.h"
 
 namespace Ui {
@@ -45,5 +46,7 @@ private:
 };
 
 void updateServerMode(ServerMode sMode);
+void outputAudio(MusicBuffer *buffer);
+void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
 
 #endif // MAINWINDOW_H

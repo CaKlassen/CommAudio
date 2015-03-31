@@ -2,16 +2,11 @@
 #define NETWORK_H_
 
 #include <string>
+#include "MusicBuffer.h"
 
 
 /* The Multicast IP to connect to */
 #define MULTICAST_ADDR "234.5.6.7"
-
-/* The size of a data message */
-#define MESSAGE_SIZE 512
-
-/* The size of the circular sound buffer */
-#define BUFFER_SIZE (MESSAGE_SIZE * 10)
 
 
 /* An enum representing all possible server modes */
@@ -32,7 +27,7 @@ typedef struct ClientState ClientState;
 
 void connectControlChannel(ClientState *cData);
 void streamMusic(ClientState *cData);
-void connectMusic(ClientState *cData);
+void connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
 
 
 #endif

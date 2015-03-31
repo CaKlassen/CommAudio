@@ -93,6 +93,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	// Randomize the seed
+	srand(time(NULL));
+
 	sMode = (ServerMode)atoi(argv[1]);
 	port = atoi(argv[2]);
 
@@ -345,19 +348,13 @@ bool playMulticast()
 			// Wait for the song to start
 		}
 
-		char testBuffer[MESSAGE_SIZE];
-		for (int i = 0; i < MESSAGE_SIZE; i++)
-		{
-			testBuffer[i] = 'a';
-		}
-
 		// While we are not done and there is data left to send
 		while (!done && libvlc_media_player_is_playing(mediaPlayer))
 		{
 			// Send part of the song to the multicast socket
-			sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+			//sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
 			
-			cout << "Sent data @ " << MESSAGE_SIZE << " bytes." << endl;
+			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
 
 			Sleep(1000);
 		}
@@ -467,6 +464,7 @@ void saveUnicast(Client *c, string ip, string song)
 	tSendUnicast.detach();
 }
 
+
 void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
 	CMessage cMsg;
@@ -481,6 +479,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 
 	// loop until all of the song is sent
 }
+
 
 void thread_runserver()
 {
@@ -644,11 +643,12 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 			messageSize = dataSize;
 		}
 
-		// Write the data to the circular buffer
+		// Write the data to the socket
 		buffer = new char[dataSize];
 		memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
 
-		//mBuffer.put(buffer, messageSize);
+		sendto(multicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+
 		dataSize -= messageSize;
 		dataSent += messageSize;
 
