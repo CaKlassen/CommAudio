@@ -59,6 +59,16 @@ SOCKADDR_IN multicastInfo;
 SOCKADDR_IN multicastDestInfo;
 struct ip_mreq multicastInterface;
 
+void threadCtrlSocketLoop()
+{
+	cout << "Listening... " << endl;
+
+	while (Server::isAlive())
+	{
+		Server::acceptConnection(listeningSocket, sMode);
+	}
+}
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: main
 --
@@ -126,6 +136,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	Server::start();
+
+	std::thread tCSL(threadCtrlSocketLoop);
+	tCSL.detach();
+
 	// Enter the intended half of the program
 	if (sMode == MULTICAST)
 	{
@@ -147,7 +162,9 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 	}
-	
+
+	Server::tearDown();
+
 	// Release LibVLC
 	libvlc_release(inst);
 
@@ -252,7 +269,7 @@ bool startMulticast()
 	multicastInfo.sin_addr.s_addr = htonl(INADDR_ANY);
 	multicastInfo.sin_family = AF_INET;
 	multicastInfo.sin_port = 0;
-	
+
 	if (bind(multicastSocket, (struct sockaddr *) &multicastInfo, sizeof(multicastInfo)) == SOCKET_ERROR)
 	{
 		cerr << "Failed to bind multicast socket." << endl;
@@ -348,15 +365,17 @@ bool playMulticast()
 			// Wait for the song to start
 		}
 
+		cout << "Multicasting..." << endl;
+
 		// While we are not done and there is data left to send
 		while (!done && libvlc_media_player_is_playing(mediaPlayer))
 		{
 			// Send part of the song to the multicast socket
 			//sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
-			
-			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
 
-			Sleep(1000);
+			//cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
+
+			//Sleep(1000);
 		}
 
 		libvlc_media_player_release(mediaPlayer);
@@ -478,15 +497,8 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 	else			Server::send(c, msg, &c->sin_udp);
 
 	// loop until all of the song is sent
-}
 
-
-void thread_runserver()
-{
-	while (Server::isAlive())
-	{
-		Server::acceptConnection(listeningSocket, sMode);
-	}
+	cout << "Unicasting..." << endl;
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -511,14 +523,7 @@ void thread_runserver()
 ----------------------------------------------------------------------------------------------------------------------*/
 bool startUnicast()
 {
-	Server::start();
-
-	std::thread t_runserver(thread_runserver);
-	t_runserver.detach();
-
 	getchar();
-
-	Server::tearDown();
 
 	return true;
 }
@@ -549,7 +554,7 @@ void startLibVLC()
 	char smem_options[256];
 
 	// Write the command line string to the char array
-	sprintf(smem_options, VLC_OPTIONS, (long long int)(intptr_t)(void*) &handleStream, (long long int)(intptr_t)(void*) &prepareRender);
+	sprintf(smem_options, VLC_OPTIONS, (long long int)(intptr_t)(void*)&handleStream, (long long int)(intptr_t)(void*)&prepareRender);
 
 	const char* const vlc_args[] = { "-I", "dummy", "--verbose=0", "--sout", smem_options };
 

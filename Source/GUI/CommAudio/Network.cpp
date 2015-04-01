@@ -21,11 +21,12 @@
 #include <cstdlib>
 #include <iostream>
 #include <thread>
-#include <ws2tcpip.h>
+#include <WS2tcpip.h>
 
 #include "mainwindow.h"
 #include "Network.h"
 #include "MusicBuffer.h"
+#include "ControlChannel.h"
 
 using std::cerr;
 using std::cout;
@@ -34,6 +35,7 @@ using std::endl;
 // Network Variables
 SOCKET controlSocket;
 SOCKADDR_IN controlInfo;
+SocketInfo* serverCtrlSockInfo;
 
 // Unicast Variables
 SOCKET unicastStreamSocket;
@@ -48,6 +50,11 @@ struct ip_mreq multicastInterface;
 
 // Microphone Variables
 
+
+
+// Function Prototypes
+
+void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: connectContolChannel
@@ -106,8 +113,18 @@ bool connectControlChannel(ClientState *cData)
         cerr << "Failed to connect to the server." << endl;
         return false;
     }
-    
+
+    serverCtrlSockInfo = new SocketInfo();
+    serverCtrlSockInfo->socket = controlSocket;
+
+    ControlSocket::recv(serverCtrlSockInfo);
+
     return true;
+}
+
+void disconnectControlChannel()
+{
+
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -256,3 +273,101 @@ void streamMusic(ClientState *cData)
     }
 }
 
+bool ControlSocket::recv(SocketInfo* si)
+{
+    DWORD bytesReceived = 0;
+    DWORD flags = 0;
+
+    //si->overlapped = {};
+    si->dataBuf.len = DATA_BUFSIZE;
+    si->dataBuf.buf = si->buffer;
+
+    if (WSARecv(si->socket,
+        &(si->dataBuf), 1, &bytesReceived, &flags,
+        &(si->overlapped), onRecv
+        ) == SOCKET_ERROR)
+    {
+        if (WSAGetLastError() != WSA_IO_PENDING)
+        {
+            cerr << "WSARecv() failed. Error " << WSAGetLastError() << endl;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin)
+{
+    DWORD bytesSent = 0;
+
+    //si->overlapped = {};
+    si->dataBuf.len = DATA_BUFSIZE;
+    strcpy_s(si->buffer, msg.c_str());
+    si->dataBuf.buf = si->buffer;
+
+    if (sin)
+    {
+        if (WSASendTo(si->socket,
+            &(si->dataBuf), 1, &bytesSent, 0,
+            (sockaddr*)sin, sizeof(*sin),
+            &(si->overlapped), NULL
+            ) == SOCKET_ERROR)
+        {
+            if (WSAGetLastError() != WSA_IO_PENDING)
+            {
+                cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
+                return false;
+            }
+        }
+        cout << "send udp> " << si->buffer << endl;
+    }
+    else
+    {
+        if (WSASend(si->socket,
+            &(si->dataBuf), 1, &bytesSent, 0,
+            &(si->overlapped), NULL
+            ) == SOCKET_ERROR)
+        {
+            if (WSAGetLastError() != WSA_IO_PENDING)
+            {
+                cerr << "WSASend() failed. Error " << WSAGetLastError() << endl;
+                return false;
+            }
+        }
+        cout << "send tcp> " << si->buffer << endl;
+    }
+
+    return true;
+}
+
+void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
+{
+    CMessage cm;
+
+    SocketInfo* SI = (SocketInfo*)overlapped;
+
+    if (error != 0)
+    {
+        cerr << "I/O operation failed. Error " << error << endl;
+    }
+
+    if (bytesTransferred == 0)
+    {
+        cout << "Closing socket " << SI->socket << endl;
+    }
+
+    if (error != 0 || bytesTransferred == 0)
+    {
+        closesocket(SI->socket);
+        delete SI;
+        return;
+    }
+
+    cout << "recv> " << SI->buffer << endl;
+
+    parseControlString(std::string(SI->buffer), &cm);
+    handleControlMessage(&cm);
+
+    ControlSocket::recv(SI);
+}
