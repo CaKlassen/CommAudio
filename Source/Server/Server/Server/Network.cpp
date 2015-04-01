@@ -18,6 +18,7 @@
 ----------------------------------------------------------------------------------------------------------------------*/
 
 #include "Network.h"
+#include "Application.h"
 
 #include <iostream>
 #include <sstream>
@@ -33,6 +34,7 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
 vector<Client*> clients;
 bool isAlive = false;
+AudioMetaData *mData;
 
 /// GENERAL STUFF
 
@@ -120,6 +122,75 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 	return true;
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendCurrentSongMulti
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: sendCurrentSongMulti(int song);
+--
+-- PARAMETERS:
+--		song - the song number in the tracklist to send
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function sends the current song to all connected clients.
+----------------------------------------------------------------------------------------------------------------------*/
+void sendCurrentSongMulti(int song, AudioMetaData *metaData)
+{
+	mData = metaData;
+
+	CMessage cMsg;
+	cMsg.msgType = NOW_PLAYING;
+
+	if (metaData->title == NULL)
+	{
+		cMsg.msgData.emplace_back("Unknown");
+	}
+	else
+	{
+		cMsg.msgData.emplace_back(metaData->title);
+	}
+
+	if (metaData->artist == NULL)
+	{
+		cMsg.msgData.emplace_back("Unknown");
+	}
+	else
+	{
+		cMsg.msgData.emplace_back(metaData->artist);
+	}
+
+	if (metaData->album == NULL)
+	{
+		cMsg.msgData.emplace_back("Unknown");
+	}
+	else
+	{
+		cMsg.msgData.emplace_back(metaData->album);
+	}
+
+	string controlString;
+	createControlString(cMsg, controlString);
+
+	// Loop through all clients in the connected client list
+	vector<Client*>::iterator it;
+
+	for (it = clients.begin(); it != clients.end(); it++)
+	{
+		Server::send(*it, controlString);
+	}
+}
+
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: acceptConnection
 --
@@ -162,6 +233,63 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 	createControlString(cMsg, startConnMsg);
 
 	bool success = send(c, startConnMsg);
+
+	if (sMode == MULTICAST)
+	{
+		// Send current song
+		CMessage cMsg;
+		cMsg.msgType = NOW_PLAYING;
+
+		if (mData->title == NULL)
+		{
+			cMsg.msgData.emplace_back("Unknown");
+		}
+		else
+		{
+			cMsg.msgData.emplace_back(mData->title);
+		}
+
+		if (mData->artist == NULL)
+		{
+			cMsg.msgData.emplace_back("Unknown");
+		}
+		else
+		{
+			cMsg.msgData.emplace_back(mData->artist);
+		}
+
+		if (mData->album == NULL)
+		{
+			cMsg.msgData.emplace_back("Unknown");
+		}
+		else
+		{
+			cMsg.msgData.emplace_back(mData->album);
+		}
+
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+	}
+	else
+	{
+		// Send tracklist
+		CMessage cMsg;
+		cMsg.msgType = TRACK_LIST;
+		vector<string>* tlist = getTracklist();
+
+		vector<string>::iterator it;
+		for (it = tlist->begin(); it != tlist->end(); it++)
+		{
+			cMsg.msgData.emplace_back(*it);
+		}
+
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+	}
 
 	if (success)
 	{

@@ -223,10 +223,11 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: void streamMusic(ClientState *cData);
+-- INTERFACE: void streamMusic(ClientState *cData, string &song);
 --
 -- PARAMETERS:
 --      cData - the struct containing the client state info
+--      song - the song name to request
 --
 -- RETURNS: void
 --
@@ -234,8 +235,18 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
 --     This function begins listening for a Unicast music stream from the
 --     server and plays it.
 ----------------------------------------------------------------------------------------------------------------------*/
-void streamMusic(ClientState *cData)
+void streamMusic(ClientState *cData, string &song)
 {
+    // Send the server a request
+    CMessage cMsg;
+    cMsg.msgType = PLAY_SONG;
+    cMsg.msgData.emplace_back(song);
+    
+    string controlString;
+    createControlString(&cMsg, &controlString);
+    
+    ControlSocket::send(serverCtrlSockInfo, controlString);
+    
     // Open a UDP listener
     if ((unicastStreamSocket = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
     {

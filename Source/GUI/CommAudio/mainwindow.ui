@@ -33,7 +33,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="iconSize">
        <size>
@@ -61,36 +61,104 @@
         <string>Multicast</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_4">
-        <item row="3" column="0">
-         <widget class="QPushButton" name="mPlayButton">
+        <item row="0" column="0" alignment="Qt::AlignTop">
+         <widget class="QLabel" name="mSongLabel">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
-           <string>Play</string>
+           <string>                  Song:</string>
           </property>
          </widget>
         </item>
-        <item row="3" column="4">
+        <item row="6" column="5">
          <widget class="QPushButton" name="mVolumeButton">
           <property name="text">
            <string>Volume</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="mSongLabel">
-          <property name="text">
-           <string>                  Song:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1" rowspan="2">
+        <item row="0" column="1" alignment="Qt::AlignTop">
          <widget class="QLabel" name="mCurrentSongLabel">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
           <property name="font">
            <font>
-            <pointsize>32</pointsize>
+            <pointsize>12</pointsize>
            </font>
           </property>
           <property name="text">
-           <string>Current Song ~</string>
+           <string>Unknown</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="0">
+         <widget class="QPushButton" name="mPlayButton">
+          <property name="text">
+           <string>Play</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1" alignment="Qt::AlignTop">
+         <widget class="QLabel" name="mCurrentArtistLabel">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Unknown</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0" alignment="Qt::AlignHCenter|Qt::AlignTop">
+         <widget class="QLabel" name="label_2">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Artist:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" alignment="Qt::AlignHCenter|Qt::AlignTop">
+         <widget class="QLabel" name="label_3">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Album:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
+         <widget class="QLabel" name="mCurrentAlbumLabel">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Unknown</string>
           </property>
          </widget>
         </item>
@@ -413,7 +481,7 @@ border-bottom-width:1px;</string>
      <x>0</x>
      <y>0</y>
      <width>674</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
