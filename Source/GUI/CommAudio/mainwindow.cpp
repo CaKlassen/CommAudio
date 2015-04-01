@@ -457,7 +457,7 @@ void outputAudio(MusicBuffer *buffer)
     LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
     // Set up the wave format
-    format.nSamplesPerSec = 48000;
+    format.nSamplesPerSec = 44100;
     format.wBitsPerSample = 16;
     format.nChannels = 2;
     format.cbSize = 0;

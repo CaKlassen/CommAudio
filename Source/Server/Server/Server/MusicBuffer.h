@@ -3,7 +3,7 @@
 
 
 /* The libvlc options string used to create an instance of the streamer */
-#define VLC_OPTIONS "#transcode{acodec=s16l,samplerate=48000,channels=2}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}"
+#define VLC_OPTIONS "#transcode{acodec=s16l,samplerate=44100,channels=2}:smem{audio-postrender-callback=%lld,audio-prerender-callback=%lld}"
 
 /* The number of output buffers for streaming audio */
 #define NUM_OUTPUT_BUFFERS 3
