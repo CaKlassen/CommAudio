@@ -165,10 +165,10 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 
 	if (success)
 	{
+		recv(c); // start the recursion
+
 		cout << "CLIENT CONNECTED" << endl;
 	}
-
-	recv(c); // start the recursion
 
 	return success;
 }
