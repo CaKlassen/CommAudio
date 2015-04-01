@@ -33,6 +33,13 @@ struct SocketInfo
     WSABUF dataBuf;
 };
 
+class MainWindow;
+
+namespace Network
+{
+    void setGUIHandle(MainWindow *window);
+}
+
 bool connectControlChannel(ClientState *cData);
 void disconnectControlChannel();
 bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);

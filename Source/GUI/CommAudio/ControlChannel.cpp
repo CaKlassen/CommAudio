@@ -23,14 +23,16 @@
 #include <cstdlib>
 #include <sstream>
 #include "ControlChannel.h"
-#include "Network.h"
 #include "mainwindow.h"
 
 using std::stringstream;
 
-MainWindow *GUI;
+namespace ControlChannel
+{
+    MainWindow *GUI;
+}
 
-void setGUIHandle(MainWindow *window)
+void ControlChannel::setGUIHandle(MainWindow *window)
 {
     GUI = window;
 }
@@ -145,11 +147,11 @@ void handleControlMessage(CMessage *cMsg)
             // Determine the current server mode
             if (cMsg->msgData[0].compare("0") == 0)
             {
-                GUI->updateServerMode(MULTICAST);
+                ControlChannel::GUI->updateServerMode(MULTICAST);
             }
             else
             {
-                GUI->updateServerMode(UNICAST);    
+                ControlChannel::GUI->updateServerMode(UNICAST);
             }
             
 			break;
@@ -164,14 +166,14 @@ void handleControlMessage(CMessage *cMsg)
         case TRACK_LIST:
         {
             // The server's current tracklist
-            GUI->setTracklist(&cMsg->msgData);
+            ControlChannel::GUI->setTracklist(&cMsg->msgData);
             break;
         }
 
         case NOW_PLAYING:
         {
             // The currently playing multicast song
-            GUI->updateMulticastSong(cMsg->msgData[0], cMsg->msgData[1], cMsg->msgData[2]);
+            ControlChannel::GUI->updateMulticastSong(cMsg->msgData[0], cMsg->msgData[1], cMsg->msgData[2]);
             break;
         }
 

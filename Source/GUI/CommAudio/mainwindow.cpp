@@ -53,8 +53,6 @@ HWAVEOUT outputDevice;
 
 ClientState cData;
 
-bool isConnected = false;
-
 //the play button
 int starting = 0;
 int currentMusic = -1;
@@ -355,16 +353,18 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     //make sure we're in an appropriate tab
     if (mode < 0 || mode > 2) return;
 
-    if (isConnected)
+    if (cData.connected)
     {
         disconnectIt();
+
+        cData.connected = false;
     }
     else
     {
         if (!connectIt()) return;
-    }
 
-    isConnected = !isConnected;
+        cData.connected = true;
+    }
 }
 
 //this is the button Ok on the config tab
@@ -386,12 +386,16 @@ void MainWindow::on_cCancelButton_clicked()
 
 bool MainWindow::connectIt()
 {
+    musicBuffer.clear();
+
     // Connect to the control channel
     return connectControlChannel(&cData);
 }
 
 void MainWindow::disconnectIt()
 {
+    musicBuffer.clear();
+
     //once disconnected all tabs are available again
     focusTab(-1);
 
@@ -568,16 +572,19 @@ void outputAudio(MusicBuffer *buffer)
 -- RETURNS: void
 --
 -- NOTES:
---     This callback is ued to properly stream audio without skipping.
+--     This callback is used to properly stream audio without skipping.
 ----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-	if (uMsg == WOM_DONE)
-	{
-		if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
-		{
-			cerr << "Failed to play audio." << endl;
-			exit(1);
-		}
-	}
+    if (cData.connected)
+    {
+        if (uMsg == WOM_DONE)
+        {
+            if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+            {
+                cerr << "Failed to play audio." << endl;
+                //exit(1);
+            }
+        }
+    }
 }

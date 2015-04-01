@@ -7,6 +7,7 @@
 #include <WinSock2.h>
 
 #include "ControlChannel.h"
+#include "Network.h"
 
 WSADATA stWSAData;
 
@@ -22,7 +23,8 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
     
-    setGUIHandle(&w);
+    ControlChannel::setGUIHandle(&w);
+    Network::setGUIHandle(&w);
 
     return a.exec();
 }

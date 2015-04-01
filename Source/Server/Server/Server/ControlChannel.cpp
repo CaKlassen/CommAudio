@@ -143,14 +143,14 @@ void handleControlMessage(CMessage *cMsg, Client *c)
 	case PLAY_SONG:
 	{
 		// Client requesting song over UDP
-		playUnicast(c, inet_ntoa(c->cInfo.sin_addr), cMsg->msgData[0]);
+		playUnicast(c, cMsg->msgData[0], inet_ntoa(c->cInfo.sin_addr));
 		break;
 	}
 
 	case SAVE_SONG:
 	{
 		// Client requesting song over TCP
-		saveUnicast(c, inet_ntoa(c->cInfo.sin_addr), cMsg->msgData[0]);
+		saveUnicast(c, cMsg->msgData[0]);
 
 		break;
 	}
