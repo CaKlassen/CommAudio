@@ -36,7 +36,7 @@ struct SocketInfo
 bool connectControlChannel(ClientState *cData);
 void disconnectControlChannel();
 bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
-void streamMusic(ClientState *cData);
+void streamMusic(ClientState *cData, std::string &song);
 
 namespace ControlSocket
 {

@@ -10,6 +10,16 @@
 enum ServerMode { MULTICAST, UNICAST };
 typedef enum ServerMode ServerMode;
 
+/* A struct containing metadata for a song */
+struct AudioMetaData
+{
+	char *title;
+	char *artist;
+	char *album;
+};
+
+typedef struct AudioMetaData AudioMetaData;
+
 struct SOCKET_INFORMATION
 {
 	OVERLAPPED overlapped;
@@ -38,5 +48,7 @@ namespace Server
 	bool send(Client* c, std::string msg, sockaddr_in* sin = nullptr);
 	void disconnectClient(std::string ip);
 }
+
+void sendCurrentSongMulti(int song, AudioMetaData *metaData);
 
 #endif

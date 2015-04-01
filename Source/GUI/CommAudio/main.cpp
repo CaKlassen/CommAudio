@@ -6,6 +6,8 @@
 #include <QListWidgetItem>
 #include <WinSock2.h>
 
+#include "ControlChannel.h"
+
 WSADATA stWSAData;
 
 int main(int argc, char *argv[])
@@ -19,6 +21,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
+    
+    setGUIHandle(&w);
 
     return a.exec();
 }

@@ -51,6 +51,7 @@ bool done = false;
 libvlc_instance_t *inst;
 libvlc_media_player_t *mediaPlayer;
 libvlc_media_t *media;
+AudioMetaData metaData;
 
 // Socket variables
 WSADATA wsaData;
@@ -237,6 +238,33 @@ bool loadTracklist(vector<string> *tlist, string location)
 	return true;
 }
 
+
+bool getMetaData(AudioMetaData *metaData, libvlc_media_t *media)
+{
+	libvlc_media_parse(media);
+
+	// Parse the metadata from the audio file
+	metaData->title = libvlc_media_get_meta(media, libvlc_meta_Title);
+	metaData->artist = libvlc_media_get_meta(media, libvlc_meta_Artist);
+	metaData->album = libvlc_media_get_meta(media, libvlc_meta_Album);
+
+	if (metaData->title == NULL || metaData->artist == NULL || metaData->album == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+void freeMetaData(AudioMetaData *metaData)
+{
+	libvlc_free(metaData->artist);
+	libvlc_free(metaData->album);
+	libvlc_free(metaData->title);
+}
+
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: startMulticast
 --
@@ -351,15 +379,22 @@ bool playMulticast()
 			return false;
 		}
 
+		// Retrieve the metadata
+		freeMetaData(&metaData);
+		if (getMetaData(&metaData, media))
+		{
+			cout << "Meta Data: " << metaData.artist << ", " << metaData.title << ", " << metaData.album << endl;
+		}
+
 		// Play the audio
 		mediaPlayer = libvlc_media_player_new_from_media(media);
 		libvlc_media_release(media);
 		libvlc_media_player_play(mediaPlayer);
 
 		// Start the Send Current Song thread
-		std::thread tCurrentSong(sendCurrentSongMulti, randSong);
+		std::thread tCurrentSong(sendCurrentSongMulti, randSong, &metaData);
 		tCurrentSong.detach();
-
+		
 		while (!libvlc_media_player_is_playing(mediaPlayer))
 		{
 			// Wait for the song to start
@@ -370,12 +405,9 @@ bool playMulticast()
 		// While we are not done and there is data left to send
 		while (!done && libvlc_media_player_is_playing(mediaPlayer))
 		{
-			// Send part of the song to the multicast socket
-			//sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
 
-			//cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
-
-			//Sleep(1000);
+			Sleep(1000);
 		}
 
 		libvlc_media_player_release(mediaPlayer);
@@ -393,36 +425,6 @@ bool playMulticast()
 	return true;
 }
 
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: sendCurrentSongMulti
---
--- DATE: March 14, 2015
---
--- REVISIONS: (Date and Description)
---
--- DESIGNER: Chris Klassen
---
--- PROGRAMMER: Chris Klassen
---
--- INTERFACE: sendCurrentSongMulti(int song);
---
--- PARAMETERS:
---		song - the song number in the tracklist to send
---
--- RETURNS: void
---
--- NOTES:
---     This function sends the current song to all connected clients.
-----------------------------------------------------------------------------------------------------------------------*/
-void sendCurrentSongMulti(int song)
-{
-	CMessage cMsg;
-	cMsg.msgType = NOW_PLAYING;
-
-	// Loop through all clients in the connected client list
-
-
-}
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: sendUnicast
@@ -486,19 +488,12 @@ void saveUnicast(Client *c, string ip, string song)
 
 void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
-	CMessage cMsg;
-	cMsg.msgType = NOW_PLAYING;
-	cMsg.msgData.push_back(song);
-
-	std::string msg;
-	createControlString(cMsg, msg);
-
-	if (usingTCP)	Server::send(c, msg);
-	else			Server::send(c, msg, &c->sin_udp);
-
 	// loop until all of the song is sent
 
 	cout << "Unicasting..." << endl;
+
+
+	//sendto(c->socketinfo.socket)
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -664,4 +659,10 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 
 	// Free the temporary stream buffer
 	free(p_pcm_buffer);
+}
+
+
+vector<string>* getTracklist()
+{
+	return &tracklist;
 }

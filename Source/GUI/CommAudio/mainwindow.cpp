@@ -97,26 +97,12 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.ip = "127.0.0.1";
     cData.port = 9000;
     cData.connected = false;
-    cData.sMode = MULTICAST;
+    cData.sMode = NOTHING;
 
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
     ui->cFilepathText->setText(filePath);
     
-    /* Populates the list widget  */
-    for(int i= 1; i < 10; i++)
-    {
-        ui->uSongList->addItem("Song number " + QString::number(i));
-
-        ui->uPlayList->addItem("");
-        ui->uPlayList->item(i-1)->setTextColor(playColor);
-
-        ui->uDownloadList->addItem("");
-        ui->uDownloadList->item(i-1)->setTextColor(downloadColor);
-
-        if (i == 1)
-            ui->uSongList->setCurrentRow(0);
-    }
     ui->uSongList->setFrameShape(QFrame::NoFrame);
     ui->uPlayList->setFrameShape(QFrame::NoFrame);
     ui->uDownloadList->setFrameShape(QFrame::NoFrame);
@@ -130,6 +116,30 @@ MainWindow::~MainWindow()
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: on_uPlayButton_clicked
+--
+-- DATE: March 31, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: 
+--      Jonathan Chu
+--      Chris Klassen
+--
+-- PROGRAMMER: 
+--      Jonathan Chu
+--      Chris Klassen
+--
+-- INTERFACE: void on_uPlayButton_clicked();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function requests a song from the server to be streamed.
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_uPlayButton_clicked()
 {
     //This selects the item and then just make it blue
@@ -168,8 +178,14 @@ void MainWindow::on_uPlayButton_clicked()
         }
     }
 
-    starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
-    ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
+    // Start receiving audio
+    string song;
+    song = ui->uSongList->item(currentMusic)->text().toStdString();
+    std::thread streamThread(streamMusic, &cData, song);
+    streamThread.detach();
+    
+    //starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
+    //ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
 }
 
 //the download button
@@ -252,6 +268,37 @@ void MainWindow::on_mVolumeButton_clicked()
 
 
 /*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: updateMulticastSong
+--
+-- DATE: March 31, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void updateMulticastSong(string title, string artist, string album);
+--
+-- PARAMETERS:
+--      title - the title of the current song
+--      artist - the artist of the current song
+--      album - the album of the current song
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function updates the current multicast song on the GUI.
+----------------------------------------------------------------------------------------------------------------------*/
+void MainWindow::updateMulticastSong(string title, string artist, string album)
+{
+    ui->mCurrentSongLabel->setText(QString::fromStdString(title));
+    ui->mCurrentArtistLabel->setText(QString::fromStdString(artist));
+    ui->mCurrentAlbumLabel->setText(QString::fromStdString(album));
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: setTracklist
 --
 -- DATE: March 18, 2015
@@ -276,6 +323,8 @@ void MainWindow::setTracklist(vector<string> *songs)
 {
     tracklist.clear();
     ui->uSongList->clear();
+    ui->uPlayList->clear();
+    ui->uDownloadList->clear();
 
     // Loop through and add each new song to the tracklist
     for (int i = 0; i < (int) songs->size(); i++)
@@ -284,10 +333,15 @@ void MainWindow::setTracklist(vector<string> *songs)
 
         // Update the tracklist GUI component
         ui->uSongList->addItem(QString::fromStdString(songs->at(i)));
+        ui->uPlayList->addItem("");
+        ui->uPlayList->item(tracklist.size() - 1)->setTextColor(playColor);
+        ui->uDownloadList->addItem("");
+        ui->uDownloadList->item(tracklist.size() - 1)->setTextColor(downloadColor);
+        
     }
-
+    
+    ui->uSongList->setCurrentRow(0);
 }
-
 
 
 void MainWindow::on_actionConnectDisconnect_triggered()
@@ -425,9 +479,18 @@ void MainWindow::errorMessage(QString message)
 -- NOTES:
 --     This function updates the client mode based on the server.
 ----------------------------------------------------------------------------------------------------------------------*/
-void updateServerMode(ServerMode sMode)
+void MainWindow::updateServerMode(ServerMode sMode)
 {
     cData.sMode = sMode;
+    
+    if (sMode == MULTICAST)
+    {
+        focusTab(0);
+    }
+    else
+    {
+        focusTab(1);
+    }
 }
 
 
