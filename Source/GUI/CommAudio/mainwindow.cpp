@@ -27,8 +27,8 @@
 #include <iostream>
 #include <thread>
 #include <stdio.h>
-//#include <winsock2.h>
 #include <errno.h>
+#include "Network.h"
 
 #include "MusicBuffer.h"
 
@@ -339,7 +339,7 @@ void MainWindow::connectIt()
         {
             return;
         }
-        
+
         //check if its unicast
         if (cData.sMode == UNICAST && (mode == 0 || mode==1))
         {
@@ -365,6 +365,8 @@ void MainWindow::disconnectIt()
 {
     //once disconnected all tabs are available again
     focusTab(-1);
+
+    disconnectControlChannel();
 }
 
 void MainWindow::focusTab(int tabNumber)
