@@ -32,6 +32,7 @@ struct Client
 {
 	SOCKET_INFORMATION socketinfo;
 	sockaddr_in sin_udp;
+	sockaddr_in cInfo;
 };
 
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port);
