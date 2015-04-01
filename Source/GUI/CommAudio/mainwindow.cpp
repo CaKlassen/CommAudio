@@ -11,9 +11,11 @@
 --
 -- DESIGNER: Jonathan Chu
 --           Chris Klassen
+--           Melvin Loho
 --
 -- PROGRAMMER: Jonathan Chu
 --             Chris Klassen
+--             Melvin Loho
 --
 -- NOTES:
 --      This file contains functionality to handle GUI interaction and display.
@@ -50,6 +52,8 @@ MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
 
 ClientState cData;
+
+bool isConnected = false;
 
 //the play button
 int starting = 0;
@@ -346,22 +350,21 @@ void MainWindow::setTracklist(vector<string> *songs)
 
 void MainWindow::on_actionConnectDisconnect_triggered()
 {
-    if (ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != "Config.")
+    int mode = ui->tabWidget->currentIndex();
+
+    //make sure we're in an appropriate tab
+    if (mode < 0 || mode > 2) return;
+
+    if (isConnected)
     {
-        if (!ui->actionConnectDisconnect->isChecked())
-        {
-            disconnectIt();
-        }
-        else
-        {
-            connectIt();
-        }
+        disconnectIt();
     }
     else
     {
-        //if its the connect is being pressed while on the config tab
-        ui->actionConnectDisconnect->setChecked(false);
+        if (!connectIt()) return;
     }
+
+    isConnected = !isConnected;
 }
 
 //this is the button Ok on the config tab
@@ -381,38 +384,10 @@ void MainWindow::on_cCancelButton_clicked()
     ui->cFilepathText->setText(filePath);
 }
 
-void MainWindow::connectIt()
+bool MainWindow::connectIt()
 {
-    int mode = ui->tabWidget->currentIndex();
-
-    //make sure connect does not work on the configuration
-    if (ui->tabWidget->tabText(mode) != "Config.")
-    {
-        // Connect to the control channel
-        if (!connectControlChannel(&cData))
-        {
-            return;
-        }
-
-        //check if its unicast
-        if (cData.sMode == UNICAST && (mode == 0 || mode==1))
-        {
-            focusTab(1);   
-        }
-
-        //check if it is multicast
-        else if (cData.sMode == MULTICAST && (mode==0 || mode==1))
-        {
-            focusTab(0);
-            std::thread streamThread(connectMusic, &cData, &musicBuffer);
-            streamThread.detach();
-        }
-        //if its neither multicast or unicast
-        else
-        {
-            focusTab(mode);
-        }
-    }
+    // Connect to the control channel
+    return connectControlChannel(&cData);
 }
 
 void MainWindow::disconnectIt()
@@ -431,7 +406,7 @@ void MainWindow::focusTab(int tabNumber)
         ui->actionConnectDisconnect->setText("Connect");
         for (int n = 0; n < ui->tabWidget->count(); n++)
         {
-                ui->tabWidget->setTabEnabled(n, true);
+            ui->tabWidget->setTabEnabled(n, true);
         }
     }
     else
@@ -482,14 +457,18 @@ void MainWindow::errorMessage(QString message)
 void MainWindow::updateServerMode(ServerMode sMode)
 {
     cData.sMode = sMode;
-    
-    if (sMode == MULTICAST)
-    {
-        focusTab(0);
-    }
-    else
+
+    //check if its unicast
+    if (cData.sMode == UNICAST)
     {
         focusTab(1);
+    }
+    //check if it is multicast
+    else if (cData.sMode == MULTICAST)
+    {
+        focusTab(0);
+        std::thread streamThread(connectMusic, &cData, &musicBuffer);
+        streamThread.detach();
     }
 }
 
