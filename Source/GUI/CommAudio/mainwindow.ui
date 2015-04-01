@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>674</width>
-    <height>548</height>
+    <width>535</width>
+    <height>423</height>
    </rect>
   </property>
   <property name="maximumSize">
@@ -29,8 +29,8 @@
         <height>341</height>
        </size>
       </property>
-      <property name="tabShape">
-       <enum>QTabWidget::Rounded</enum>
+      <property name="tabPosition">
+       <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
        <number>0</number>
@@ -61,32 +61,49 @@
         <string>Multicast</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_4">
-        <item row="0" column="0" alignment="Qt::AlignTop">
+        <item row="0" column="0">
          <widget class="QLabel" name="mSongLabel">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>100</height>
-           </size>
-          </property>
           <property name="font">
            <font>
             <pointsize>12</pointsize>
            </font>
           </property>
           <property name="text">
-           <string>                  Song:</string>
+           <string>Song:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
           </property>
          </widget>
         </item>
-        <item row="6" column="5">
-         <widget class="QPushButton" name="mVolumeButton">
+        <item row="1" column="0" alignment="Qt::AlignHCenter|Qt::AlignTop">
+         <widget class="QLabel" name="label_2">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
           <property name="text">
-           <string>Volume</string>
+           <string>Artist:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
           </property>
          </widget>
         </item>
-        <item row="0" column="1" alignment="Qt::AlignTop">
+        <item row="1" column="1" alignment="Qt::AlignTop">
+         <widget class="QLabel" name="mCurrentArtistLabel">
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>Unknown</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
          <widget class="QLabel" name="mCurrentSongLabel">
           <property name="minimumSize">
            <size>
@@ -107,15 +124,8 @@
           </property>
          </widget>
         </item>
-        <item row="6" column="0">
-         <widget class="QPushButton" name="mPlayButton">
-          <property name="text">
-           <string>Play</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1" alignment="Qt::AlignTop">
-         <widget class="QLabel" name="mCurrentArtistLabel">
+        <item row="2" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
+         <widget class="QLabel" name="mCurrentAlbumLabel">
           <property name="font">
            <font>
             <pointsize>12</pointsize>
@@ -126,15 +136,10 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="0" alignment="Qt::AlignHCenter|Qt::AlignTop">
-         <widget class="QLabel" name="label_2">
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
+        <item row="6" column="5">
+         <widget class="QPushButton" name="mVolumeButton">
           <property name="text">
-           <string>Artist:</string>
+           <string>Volume</string>
           </property>
          </widget>
         </item>
@@ -148,17 +153,15 @@
           <property name="text">
            <string>Album:</string>
           </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
          </widget>
         </item>
-        <item row="2" column="1" alignment="Qt::AlignLeft|Qt::AlignTop">
-         <widget class="QLabel" name="mCurrentAlbumLabel">
-          <property name="font">
-           <font>
-            <pointsize>12</pointsize>
-           </font>
-          </property>
+        <item row="6" column="0">
+         <widget class="QPushButton" name="mPlayButton">
           <property name="text">
-           <string>Unknown</string>
+           <string>Play</string>
           </property>
          </widget>
         </item>
@@ -178,13 +181,13 @@
            <widget class="QListWidget" name="uPlayList">
             <property name="minimumSize">
              <size>
-              <width>30</width>
+              <width>20</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>30</width>
+              <width>20</width>
               <height>16777215</height>
              </size>
             </property>
@@ -213,13 +216,13 @@ border-bottom-width:1px;</string>
            <widget class="QListWidget" name="uDownloadList">
             <property name="minimumSize">
              <size>
-              <width>30</width>
+              <width>20</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>30</width>
+              <width>20</width>
               <height>16777215</height>
              </size>
             </property>
@@ -323,49 +326,71 @@ border-bottom-width:1px;</string>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
-        <string>Config.</string>
+        <string>Configuration</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_6">
-        <item row="1" column="0">
-         <widget class="QLabel" name="cPortLabel">
-          <property name="minimumSize">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
+        <item row="2" column="0">
+         <widget class="QLabel" name="cFilepathLabel">
           <property name="text">
-           <string>Port</string>
+           <string>Download path: </string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="cFilepathLabel">
-          <property name="minimumSize">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
+        <item row="3" column="2">
+         <widget class="QPushButton" name="cCancelButton">
           <property name="text">
-           <string>File Path</string>
+           <string>Discard</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QPushButton" name="cOKButton">
+          <property name="text">
+           <string>Save</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="cPortLabel">
+          <property name="text">
+           <string>Port: </string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
         <item row="2" column="1">
          <widget class="QLineEdit" name="cFilepathText">
+          <property name="minimumSize">
+           <size>
+            <width>327</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>327</width>
+            <height>20</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="cIPAddressLabel">
+          <property name="text">
+           <string>IP Address: </string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="cPortText">
           <property name="minimumSize">
            <size>
             <width>327</width>
@@ -396,79 +421,6 @@ border-bottom-width:1px;</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="cIPAddressLabel">
-          <property name="minimumSize">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>IP Address</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="cPortText">
-          <property name="minimumSize">
-           <size>
-            <width>327</width>
-            <height>20</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>327</width>
-            <height>20</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2">
-         <widget class="QPushButton" name="cOKButton">
-          <property name="minimumSize">
-           <size>
-            <width>122</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>122</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>OK</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="3">
-         <widget class="QPushButton" name="cCancelButton">
-          <property name="minimumSize">
-           <size>
-            <width>122</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>122</width>
-            <height>23</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Cancel</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </widget>
      </widget>
@@ -480,8 +432,8 @@ border-bottom-width:1px;</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>674</width>
-     <height>20</height>
+     <width>535</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -502,15 +454,29 @@ border-bottom-width:1px;</string>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionConnectDisconnect">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="text">
     <string>Connect</string>
    </property>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>mPlayButton</tabstop>
+  <tabstop>mVolumeButton</tabstop>
+  <tabstop>uPlayList</tabstop>
+  <tabstop>uDownloadList</tabstop>
+  <tabstop>uSongList</tabstop>
+  <tabstop>uPlayButton</tabstop>
+  <tabstop>uMusicProgressSlider</tabstop>
+  <tabstop>uDownloadButton</tabstop>
+  <tabstop>micButton</tabstop>
+  <tabstop>cIPAddressText</tabstop>
+  <tabstop>cPortText</tabstop>
+  <tabstop>cFilepathText</tabstop>
+  <tabstop>cOKButton</tabstop>
+  <tabstop>cCancelButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

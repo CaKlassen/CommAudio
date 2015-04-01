@@ -19,7 +19,7 @@ public:
     ~MainWindow();
     void setTracklist(std::vector<std::string> *songs);
     void disconnectIt();
-    void connectIt();
+    bool connectIt();
     void focusTab(int tabNumber);
     void errorMessage(QString message);
     void updateServerMode(ServerMode sMode);

@@ -234,68 +234,68 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 
 	bool success = send(c, startConnMsg);
 
-	if (sMode == MULTICAST)
-	{
-		// Send current song
-		CMessage cMsg;
-		cMsg.msgType = NOW_PLAYING;
-
-		if (mData->title == NULL)
-		{
-			cMsg.msgData.emplace_back("Unknown");
-		}
-		else
-		{
-			cMsg.msgData.emplace_back(mData->title);
-		}
-
-		if (mData->artist == NULL)
-		{
-			cMsg.msgData.emplace_back("Unknown");
-		}
-		else
-		{
-			cMsg.msgData.emplace_back(mData->artist);
-		}
-
-		if (mData->album == NULL)
-		{
-			cMsg.msgData.emplace_back("Unknown");
-		}
-		else
-		{
-			cMsg.msgData.emplace_back(mData->album);
-		}
-
-		string controlString;
-		createControlString(cMsg, controlString);
-
-		Server::send(c, controlString);
-	}
-	else
-	{
-		// Send tracklist
-		CMessage cMsg;
-		cMsg.msgType = TRACK_LIST;
-		vector<string>* tlist = getTracklist();
-
-		vector<string>::iterator it;
-		for (it = tlist->begin(); it != tlist->end(); it++)
-		{
-			cMsg.msgData.emplace_back(*it);
-		}
-
-		string controlString;
-		createControlString(cMsg, controlString);
-
-		Server::send(c, controlString);
-	}
-
 	if (success)
 	{
+		if (sMode == MULTICAST)
+		{
+			// Send current song
+			CMessage cMsg;
+			cMsg.msgType = NOW_PLAYING;
+
+			if (mData->title == NULL)
+			{
+				cMsg.msgData.emplace_back("Unknown");
+			}
+			else
+			{
+				cMsg.msgData.emplace_back(mData->title);
+			}
+
+			if (mData->artist == NULL)
+			{
+				cMsg.msgData.emplace_back("Unknown");
+			}
+			else
+			{
+				cMsg.msgData.emplace_back(mData->artist);
+			}
+
+			if (mData->album == NULL)
+			{
+				cMsg.msgData.emplace_back("Unknown");
+			}
+			else
+			{
+				cMsg.msgData.emplace_back(mData->album);
+			}
+
+			string controlString;
+			createControlString(cMsg, controlString);
+
+			Server::send(c, controlString);
+		}
+		else
+		{
+			// Send tracklist
+			CMessage cMsg;
+			cMsg.msgType = TRACK_LIST;
+			vector<string>* tlist = getTracklist();
+
+			vector<string>::iterator it;
+			for (it = tlist->begin(); it != tlist->end(); it++)
+			{
+				cMsg.msgData.emplace_back(*it);
+			}
+
+			string controlString;
+			createControlString(cMsg, controlString);
+
+			Server::send(c, controlString);
+		}
+
 		recv(c); // start the recursion
 
-		cout << "CLIENT CONNECTED" << endl;
+		cout << "Client connected [" << c->socketinfo.socket << "]" << endl;
 	}
 
 	return success;
@@ -409,14 +409,13 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
 	Client* C = (Client*)overlapped;
 
-	if (error != 0)
+	if (bytesTransferred == 0 || error == 10054)
+	{
+		cout << "Client disconnected [" << C->socketinfo.socket << "]" << endl;
+	}
+	else if (error != 0)
 	{
 		cerr << "I/O operation failed. Error " << error << endl;
-	}
-
-	if (bytesTransferred == 0)
-	{
-		cout << "Closing socket " << C->socketinfo.socket << endl;
 	}
 
 	if (error != 0 || bytesTransferred == 0)
