@@ -224,6 +224,17 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 	c = createClient();
 	c->socketinfo.socket = acceptedSocket;
 
+	// Retrieve the client IP
+	int size = sizeof(c->cInfo);
+	if (getpeername(acceptedSocket, (sockaddr *) &c->cInfo, &size) != 0)
+	{
+		cerr << "Failed to get peer name." << endl;
+	}
+	else
+	{
+		cout << "Peer name: " << inet_ntoa(c->cInfo.sin_addr) << endl;
+	}
+
 	CMessage cMsg;
 	cMsg.msgType = START_CONNECTION;
 	stringstream ss;
