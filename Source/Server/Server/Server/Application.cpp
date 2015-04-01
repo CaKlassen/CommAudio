@@ -220,6 +220,33 @@ bool loadTracklist(vector<string> *tlist, string location)
 	return true;
 }
 
+
+bool getMetaData(AudioMetaData *metaData, libvlc_media_t *media)
+{
+	libvlc_media_parse(media);
+
+	// Parse the metadata from the audio file
+	metaData->title = libvlc_media_get_meta(media, libvlc_meta_Title);
+	metaData->artist = libvlc_media_get_meta(media, libvlc_meta_Artist);
+	metaData->album = libvlc_media_get_meta(media, libvlc_meta_Album);
+
+	if (metaData->title == NULL || metaData->artist == NULL || metaData->album == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+void freeMetaData(AudioMetaData *metaData)
+{
+	libvlc_free(metaData->artist);
+	libvlc_free(metaData->album);
+	libvlc_free(metaData->title);
+}
+
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: startMulticast
 --
@@ -334,6 +361,14 @@ bool playMulticast()
 			return false;
 		}
 
+		// Retrieve the metadata
+		AudioMetaData metaData;
+		if (getMetaData(&metaData, media))
+		{
+			cout << "Meta Data: " << metaData.artist << ", " << metaData.title << ", " << metaData.album << endl;
+			freeMetaData(&metaData);
+		}
+
 		// Play the audio
 		mediaPlayer = libvlc_media_player_new_from_media(media);
 		libvlc_media_release(media);
@@ -354,7 +389,7 @@ bool playMulticast()
 			// Send part of the song to the multicast socket
 			//sendto(multicastSocket, testBuffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
 			
-			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
+			//cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
 
 			Sleep(1000);
 		}
