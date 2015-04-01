@@ -270,7 +270,7 @@ void streamMusic(ClientState *cData, string &song)
     }
 
     // While we are still connected
-    while(cData->connected)
+    while(!cData->connected)
     {
         int serverInfoSize = sizeof(unicastServerInfo);
         char buffer[MESSAGE_SIZE];
@@ -281,6 +281,8 @@ void streamMusic(ClientState *cData, string &song)
             WSACleanup();
             exit(1);
         }
+        
+        cout << buffer;
     }
 }
 

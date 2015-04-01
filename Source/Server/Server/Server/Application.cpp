@@ -489,11 +489,26 @@ void saveUnicast(Client *c, string ip, string song)
 void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
 	// loop until all of the song is sent
-
 	cout << "Unicasting..." << endl;
 
+	SOCKET cSock;
 
-	//sendto(c->socketinfo.socket)
+	if ((cSock = socket(PF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
+	{
+		cerr << "Failed to open client stream socket." << endl;
+		return;
+	}
+
+	char test[] = "heeeeey";
+	if (sendto(cSock, test, MESSAGE_SIZE, 0, (sockaddr *)&(c->sin_udp), sizeof(c->sin_udp)) <= 0)
+	{
+		cerr << "Failed to send stream data." << endl;
+		return;
+	}
+
+	cout << "Sent stream data." << endl;
+
+	closesocket(cSock);
 }
 
 /*------------------------------------------------------------------------------------------------------------------
