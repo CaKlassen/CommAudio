@@ -2,11 +2,16 @@
 #define CONTROL_CHANNEL_H_
 
 #include "CMessage.h"
-#include "mainwindow.h"
+
+class MainWindow;
+
+namespace ControlChannel
+{
+    void setGUIHandle(MainWindow *window);
+}
 
 void createControlString(CMessage *cMsg, string *str);
 void parseControlString(string str, CMessage *cMsg);
 void handleControlMessage(CMessage *cMsg);
-void setGUIHandle(MainWindow *window);
 
 #endif

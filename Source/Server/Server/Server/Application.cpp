@@ -448,7 +448,7 @@ bool playMulticast()
 -- NOTES:
 --     This function streams a song to a client via UDP
 ----------------------------------------------------------------------------------------------------------------------*/
-void playUnicast(Client *c, string ip, string song)
+void playUnicast(Client *c, string song, string ip)
 {
 	if (createSockAddrIn(c->sin_udp, ip, port + 1))
 	{
@@ -479,7 +479,7 @@ void playUnicast(Client *c, string ip, string song)
 -- NOTES:
 --     This function sends a song via TCP to a requesting client.
 ----------------------------------------------------------------------------------------------------------------------*/
-void saveUnicast(Client *c, string ip, string song)
+void saveUnicast(Client *c, string song)
 {
 	std::thread tSendUnicast(sendCurrentSongUni, c, song, true);
 	tSendUnicast.detach();
@@ -491,24 +491,31 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 	// loop until all of the song is sent
 	cout << "Unicasting..." << endl;
 
-	SOCKET cSock;
-
-	if ((cSock = socket(PF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
+	if (!usingTCP)
 	{
-		cerr << "Failed to open client stream socket." << endl;
-		return;
-	}
+		SOCKET cSock;
 
-	char test[] = "heeeeey";
-	if (sendto(cSock, test, MESSAGE_SIZE, 0, (sockaddr *)&(c->sin_udp), sizeof(c->sin_udp)) <= 0)
+		if ((cSock = socket(PF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
+		{
+			cerr << "Failed to open client stream socket." << endl;
+			return;
+		}
+
+		char test[] = "heeeeey";
+		if (sendto(cSock, test, MESSAGE_SIZE, 0, (sockaddr *)&(c->sin_udp), sizeof(c->sin_udp)) <= 0)
+		{
+			cerr << "Failed to send stream data." << endl;
+			return;
+		}
+
+		cout << "Sent stream data." << endl;
+
+		closesocket(cSock);
+	}
+	else
 	{
-		cerr << "Failed to send stream data." << endl;
-		return;
+		// send song via tcp control socket (download)
 	}
-
-	cout << "Sent stream data." << endl;
-
-	closesocket(cSock);
 }
 
 /*------------------------------------------------------------------------------------------------------------------

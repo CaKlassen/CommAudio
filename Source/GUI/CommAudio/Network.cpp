@@ -23,14 +23,19 @@
 #include <thread>
 #include <WS2tcpip.h>
 
-#include "mainwindow.h"
 #include "Network.h"
+#include "mainwindow.h"
 #include "MusicBuffer.h"
 #include "ControlChannel.h"
 
 using std::cerr;
 using std::cout;
 using std::endl;
+
+namespace Network
+{
+    MainWindow *GUI;
+}
 
 // Network Variables
 SOCKET controlSocket;
@@ -52,7 +57,12 @@ struct ip_mreq multicastInterface;
 
 
 
-// Function Prototypes
+// Functions
+
+void Network::setGUIHandle(MainWindow *window)
+{
+    GUI = window;
+}
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
 
@@ -119,12 +129,14 @@ bool connectControlChannel(ClientState *cData)
 
     ControlSocket::recv(serverCtrlSockInfo);
 
+    cout << "Connected!" << endl;
+
     return true;
 }
 
 void disconnectControlChannel()
 {
-
+    closesocket(controlSocket);
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -190,10 +202,12 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
     }
 
     // Start streaming the audio
-    std::thread streamThread(outputAudio, musicBuffer);
-    streamThread.detach();
+    std::thread startAudioOutputThread(outputAudio, musicBuffer);
+    // TODO constrain the above thread creation to only happen if the WaveCallback() have been stopped
+    // TODO or else there will be multiple outputs if the user spams the connect/disconnect button.
     
-    while (!cData->connected)
+    // While we are still connected
+    while (cData->connected)
     {
         // Receive data from the server
         int infoSize = sizeof(struct sockaddr_in);
@@ -207,7 +221,11 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
         // Add the data to the buffer
         musicBuffer->put(tempBuffer, numReceived);
     }
-    
+
+    startAudioOutputThread.join(); // prevents all hell from breaking loose
+
+    closesocket(multicastSocket);
+
     return true;
 }
 
@@ -270,7 +288,7 @@ void streamMusic(ClientState *cData, string &song)
     }
 
     // While we are still connected
-    while(!cData->connected)
+    while(cData->connected)
     {
         int serverInfoSize = sizeof(unicastServerInfo);
         char buffer[MESSAGE_SIZE];
@@ -284,6 +302,8 @@ void streamMusic(ClientState *cData, string &song)
         
         cout << buffer;
     }
+
+    closesocket(unicastStreamSocket);
 }
 
 bool ControlSocket::recv(SocketInfo* si)
@@ -360,14 +380,15 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
     SocketInfo* SI = (SocketInfo*)overlapped;
 
-    if (error != 0)
+    if (bytesTransferred == 0 || error == 10054)
+    {
+        cout << "Disconnected!" << endl;
+
+        Network::GUI->disconnectIt();
+    }
+    else if (error != 0)
     {
         cerr << "I/O operation failed. Error " << error << endl;
-    }
-
-    if (bytesTransferred == 0)
-    {
-        cout << "Closing socket " << SI->socket << endl;
     }
 
     if (error != 0 || bytesTransferred == 0)
@@ -382,5 +403,6 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
     parseControlString(std::string(SI->buffer), &cm);
     handleControlMessage(&cm);
 
+    // TODO Check if (cdata->connected): if true then recurse
     ControlSocket::recv(SI);
 }
