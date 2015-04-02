@@ -187,7 +187,7 @@ void MainWindow::on_uPlayButton_clicked()
     // Start receiving audio
     string song;
     song = ui->uSongList->item(currentMusic)->text().toStdString();
-    std::thread streamThread(streamMusic, &cData, song);
+    std::thread streamThread(streamMusic, &cData, song, &musicBuffer);
     streamThread.detach();
     
     //starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100

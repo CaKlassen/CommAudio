@@ -253,7 +253,7 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
 --     This function begins listening for a Unicast music stream from the
 --     server and plays it.
 ----------------------------------------------------------------------------------------------------------------------*/
-void streamMusic(ClientState *cData, string &song)
+void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer)
 {
     // Send the server a request
     CMessage cMsg;
@@ -286,22 +286,29 @@ void streamMusic(ClientState *cData, string &song)
         WSACleanup();
         exit(1);
     }
-
+    
+    std::thread startAudioOutputThread(outputAudio, musicBuffer);
+    
     // While we are still connected
     while(cData->connected)
     {
         int serverInfoSize = sizeof(unicastServerInfo);
-        char buffer[MESSAGE_SIZE];
-        if (recvfrom(unicastStreamSocket, buffer, MESSAGE_SIZE, 0,(struct sockaddr *) &unicastServerInfo, &serverInfoSize) < 0)
+        int numReceived = 0;
+        char tempBuffer[MESSAGE_SIZE];
+        
+        if ((numReceived = recvfrom(unicastStreamSocket, tempBuffer, MESSAGE_SIZE, 0,(struct sockaddr *) &unicastServerInfo, &serverInfoSize)) < 0)
         {
             // The socket data failed to be read
             cerr << "Failed to read from unicast socket." << endl;
             WSACleanup();
             exit(1);
         }
-        
-        cout << buffer;
+                
+        // Add the data to the buffer
+        musicBuffer->put(tempBuffer, numReceived);
     }
+    
+    startAudioOutputThread.join(); // wait for the thread to finish
 
     closesocket(unicastStreamSocket);
 }
