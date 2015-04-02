@@ -18,10 +18,11 @@
 ----------------------------------------------------------------------------------------------------------------------*/
 
 #include "Network.h"
-#include "Application.h"
 
 #include <iostream>
 #include <sstream>
+#include <algorithm>
+#include "Application.h"
 #include "ControlChannel.h"
 
 using namespace std;
@@ -432,6 +433,7 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 	if (error != 0 || bytesTransferred == 0)
 	{
 		closesocket(C->socketinfo.socket);
+		clients.erase(std::remove(clients.begin(), clients.end(), C), clients.end());
 		delete C;
 		return;
 	}
