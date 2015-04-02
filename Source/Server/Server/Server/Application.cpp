@@ -501,7 +501,13 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 			return;
 		}
 
-		char test[] = "heeeeey";
+		char test[MESSAGE_SIZE];
+
+		for (int i = 0; i < MESSAGE_SIZE; i++)
+		{
+			test[i] = 'T';
+		}
+
 		if (sendto(cSock, test, MESSAGE_SIZE, 0, (sockaddr *)&(c->sin_udp), sizeof(c->sin_udp)) <= 0)
 		{
 			cerr << "Failed to send stream data." << endl;
