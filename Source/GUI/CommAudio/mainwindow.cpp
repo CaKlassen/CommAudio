@@ -104,10 +104,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
     ui->cFilepathText->setText(filePath);
-    
+
     ui->uSongList->setFrameShape(QFrame::NoFrame);
     ui->uPlayList->setFrameShape(QFrame::NoFrame);
     ui->uDownloadList->setFrameShape(QFrame::NoFrame);
+
+    ui->mainToolBar->setContextMenuPolicy(Qt::PreventContextMenu);
+
+    updateMulticastSong("", "", "");
 }
 
 MainWindow::~MainWindow()
@@ -356,8 +360,6 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     if (cData.connected)
     {
         disconnectIt();
-
-        cData.connected = false;
     }
     else
     {
@@ -400,6 +402,10 @@ void MainWindow::disconnectIt()
     focusTab(-1);
 
     disconnectControlChannel();
+
+    cData.connected = false;
+
+    updateMulticastSong("", "", "");
 }
 
 void MainWindow::focusTab(int tabNumber)
@@ -537,10 +543,8 @@ void outputAudio(MusicBuffer *buffer)
         }
     }
 
-    while (!buffer->ready())
-    {
-        // Wait for the buffer to be ready to stream
-    }
+    // Wait for the buffer to be ready to stream
+    while (!buffer->ready());
     
     for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
     {
@@ -580,6 +584,9 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
     {
         if (uMsg == WOM_DONE)
         {
+            // Wait for the buffer to be ready to stream
+            while (!musicBuffer.ready());
+
             if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
             {
                 cerr << "Failed to play audio." << endl;

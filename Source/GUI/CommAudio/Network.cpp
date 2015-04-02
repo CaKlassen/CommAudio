@@ -222,7 +222,7 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
         musicBuffer->put(tempBuffer, numReceived);
     }
 
-    startAudioOutputThread.join(); // prevents all hell from breaking loose
+    startAudioOutputThread.join(); // wait for the thread to finish
 
     closesocket(multicastSocket);
 
@@ -383,8 +383,6 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
     if (bytesTransferred == 0 || error == 10054)
     {
         cout << "Disconnected!" << endl;
-
-        Network::GUI->disconnectIt();
     }
     else if (error != 0)
     {
@@ -393,6 +391,8 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
     if (error != 0 || bytesTransferred == 0)
     {
+        Network::GUI->disconnectIt();
+
         closesocket(SI->socket);
         delete SI;
         return;
