@@ -44,6 +44,7 @@ bool connectControlChannel(ClientState *cData);
 void disconnectControlChannel();
 bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
 void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer);
+void startMicrophone(ClientState *cData);
 
 namespace ControlSocket
 {

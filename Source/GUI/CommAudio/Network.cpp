@@ -54,7 +54,10 @@ SOCKADDR_IN multicastServerInfo;
 struct ip_mreq multicastInterface;
 
 // Microphone Variables
-
+SOCKET micReceiveSocket;
+SOCKET micSendSocket;
+SOCKADDR_IN micReceiveInfo;
+SOCKADDR_IN micSendInfo;
 
 
 // Functions
@@ -380,6 +383,82 @@ bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin)
 
     return true;
 }
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: startMicrophone
+--
+-- DATE: April 2, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void startMicrophone(ClientState *cData);
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function opens a receiving and sending socket for client to client
+--     microphone transfer.
+----------------------------------------------------------------------------------------------------------------------*/
+void startMicrophone(ClientState *cData)
+{
+    // Open a UDP sender
+    if ((micSendSocket = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
+    {
+        // The socket failed to be created
+        cerr << "Failed to create microphone send socket." << endl;
+        WSACleanup();
+        exit(1);
+    }
+    
+    micSendInfo.sin_addr.s_addr = inet_addr(cData->ip.c_str());
+    micSendInfo.sin_family = AF_INET;
+    micSendInfo.sin_port = htons(cData->port);
+
+    // Start sending
+    std::thread sendMic(sendMicrophone, micSendSocket, &micSendInfo);
+    sendMic.detach();
+    
+    
+    // Open a UDP listener
+    if ((micReceiveSocket = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
+    {
+        // The socket failed to be created
+        cerr << "Failed to create microphone receive socket." << endl;
+        WSACleanup();
+        exit(1);
+    }
+
+    // Bind the UDP listener
+    micReceiveInfo.sin_family = AF_INET;
+    micReceiveInfo.sin_port = htons(cData->port);
+    micReceiveInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(micReceiveSocket, (struct sockaddr *) &micReceiveInfo, sizeof(micReceiveInfo)) == -1)
+    {
+        // The socket failed to be bound
+        cerr << "Failed to bind microphone receive socket." << endl;
+        WSACleanup();
+        exit(1);
+    }
+    
+    int receiveInfoSize = sizeof(micReceiveInfo);
+    char tempBuffer[MESSAGE_SIZE];
+    
+    while (cData->connected)
+    {
+        recvfrom(micReceiveSocket, tempBuffer, MESSAGE_SIZE, 0,(struct sockaddr *) &micReceiveInfo, &receiveInfoSize);
+        
+        // Put the data into a buffer
+    }    
+}
+
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {

@@ -5,6 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui
+QT += multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,13 +17,15 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     ControlChannel.cpp \
     Network.cpp \
-    MusicBuffer.cpp
+    MusicBuffer.cpp \
+    micinfo.cpp
 
 HEADERS  += mainwindow.h \
     ControlChannel.h \
     Network.h \
     CMessage.h \
-    MusicBuffer.h
+    MusicBuffer.h \
+    micinfo.h
 
 FORMS    += mainwindow.ui
 

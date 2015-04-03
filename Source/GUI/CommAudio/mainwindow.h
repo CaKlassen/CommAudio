@@ -49,5 +49,6 @@ private:
 
 void outputAudio(MusicBuffer *buffer);
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
+void sendMicrophone(SOCKET micSocket, SOCKADDR_IN *info);
 
 #endif // MAINWINDOW_H

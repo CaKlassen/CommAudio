@@ -30,9 +30,12 @@
 #include <thread>
 #include <stdio.h>
 #include <errno.h>
+#include <QAudioDeviceInfo>
+#include <QAudioInput>
 #include "Network.h"
 
 #include "MusicBuffer.h"
+#include "micinfo.h"
 
 
 #define BUFSIZE 8192
@@ -53,6 +56,14 @@ HWAVEOUT outputDevice;
 LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
 ClientState cData;
+
+// Microphone variables
+QAudioDeviceInfo micInfo(QAudioDeviceInfo::defaultInputDevice());
+QAudioFormat micFormat;
+QAudioInput *micInput(0);
+QIODevice *micDevice(0);
+QByteArray micBuffer(MESSAGE_SIZE, 0);
+MicInfo *micAudioInfo;
 
 //the play button
 int starting = 0;
@@ -358,17 +369,28 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     //make sure we're in an appropriate tab
     if (mode < 0 || mode > 2) return;
 
-    if (cData.connected)
+    if (mode == 0 || mode == 1)
     {
-        disconnectIt();
+        // Server-based
+        if (cData.connected)
+        {
+            disconnectIt();
+        }
+        else
+        {
+            if (!connectIt()) return;
+    
+            cData.connected = true;
+        }
     }
     else
     {
-        if (!connectIt()) return;
-
-        cData.connected = true;
+        // Microphone
+        std::thread micStart(startMicrophone, &cData);
+        micStart.detach();
     }
 }
+
 
 //this is the button Ok on the config tab
 void MainWindow::on_cOKButton_clicked()
@@ -608,3 +630,33 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
         free((LPWAVEHDR) dw1);
     }
 }
+
+
+void sendMicrophone(SOCKET micSocket, SOCKADDR_IN *socketInfo)
+{
+    // Set microphone format
+    micFormat.setSampleRate(8000);
+    micFormat.setChannelCount(1);
+    micFormat.setSampleSize(16);
+    micFormat.setSampleType(QAudioFormat::SignedInt);
+    micFormat.setByteOrder(QAudioFormat::LittleEndian);
+    micFormat.setCodec("audio/pcm");
+    
+    // Set up the device
+    QAudioDeviceInfo info(QAudioDeviceInfo::defaultInputDevice());
+    if (!info.isFormatSupported(micFormat))
+    {
+        cerr << "Format not supported" << endl;
+        micFormat = info.nearestFormat(micFormat);
+    }
+    
+    micAudioInfo = new MicInfo(micFormat);
+    
+    // While we are still connected
+    while (cData.connected)
+    {
+        
+    }
+}
+
+
