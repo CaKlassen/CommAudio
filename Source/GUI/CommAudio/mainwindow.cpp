@@ -50,6 +50,7 @@ QString filePath = "C:/";
 
 MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
+LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
 ClientState cData;
 
@@ -396,8 +397,18 @@ bool MainWindow::connectIt()
 
 void MainWindow::disconnectIt()
 {
+    // Clear the buffer and free audio structures
     musicBuffer.clear();
-
+    
+    waveOutPause(outputDevice);
+    waveOutClose(outputDevice);
+    
+    
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
+    }
+       
     //once disconnected all tabs are available again
     focusTab(-1);
 
@@ -508,8 +519,6 @@ void outputAudio(MusicBuffer *buffer)
 {
     WAVEFORMATEX format;
     
-    LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
-
     // Set up the wave format
     format.nSamplesPerSec = 44100;
     format.wBitsPerSample = 16;
@@ -593,5 +602,9 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
                 //exit(1);
             }
         }
+    }
+    else
+    {
+        free((LPWAVEHDR) dw1);
     }
 }
