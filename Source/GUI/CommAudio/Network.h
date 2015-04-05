@@ -4,12 +4,15 @@
 #include <string>
 #include <WinSock2.h>
 #include "MusicBuffer.h"
+#include "micoutput.h"
 
 /* The Multicast IP to connect to */
 #define MULTICAST_ADDR "234.5.6.7"
 
 /* Control socket data size */
 #define DATA_BUFSIZE 8192
+
+class MicOutput;
 
 /* An enum representing all possible server modes */
 enum ServerMode { NOTHING, UNICAST, MULTICAST };
@@ -44,7 +47,7 @@ bool connectControlChannel(ClientState *cData);
 void disconnectControlChannel();
 bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
 void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer);
-void startMicrophone(ClientState *cData);
+void startMicrophone(ClientState *cData, MicOutput *micOutput);
 
 namespace ControlSocket
 {

@@ -27,6 +27,7 @@
 #include "mainwindow.h"
 #include "MusicBuffer.h"
 #include "ControlChannel.h"
+#include "micoutput.h"
 
 using std::cerr;
 using std::cout;
@@ -406,57 +407,16 @@ bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin)
 --     This function opens a receiving and sending socket for client to client
 --     microphone transfer.
 ----------------------------------------------------------------------------------------------------------------------*/
-void startMicrophone(ClientState *cData)
+void startMicrophone(ClientState *cData, MicOutput *micOutput)
 {
-    // Open a UDP sender
-    if ((micSendSocket = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
-    {
-        // The socket failed to be created
-        cerr << "Failed to create microphone send socket." << endl;
-        WSACleanup();
-        exit(1);
-    }
+    cData->connected = true;
     
-    micSendInfo.sin_addr.s_addr = inet_addr(cData->ip.c_str());
-    micSendInfo.sin_family = AF_INET;
-    micSendInfo.sin_port = htons(cData->port);
-
     // Start sending
-    std::thread sendMic(sendMicrophone, micSendSocket, &micSendInfo);
+    std::thread sendMic(sendMicrophone, micSendSocket);
     sendMic.detach();
     
-    
-    // Open a UDP listener
-    if ((micReceiveSocket = socket(PF_INET, SOCK_DGRAM, 0)) == -1)
-    {
-        // The socket failed to be created
-        cerr << "Failed to create microphone receive socket." << endl;
-        WSACleanup();
-        exit(1);
-    }
-
-    // Bind the UDP listener
-    micReceiveInfo.sin_family = AF_INET;
-    micReceiveInfo.sin_port = htons(cData->port);
-    micReceiveInfo.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(micReceiveSocket, (struct sockaddr *) &micReceiveInfo, sizeof(micReceiveInfo)) == -1)
-    {
-        // The socket failed to be bound
-        cerr << "Failed to bind microphone receive socket." << endl;
-        WSACleanup();
-        exit(1);
-    }
-    
-    int receiveInfoSize = sizeof(micReceiveInfo);
-    char tempBuffer[MESSAGE_SIZE];
-    
-    while (cData->connected)
-    {
-        recvfrom(micReceiveSocket, tempBuffer, MESSAGE_SIZE, 0,(struct sockaddr *) &micReceiveInfo, &receiveInfoSize);
-        
-        // Put the data into a buffer
-    }    
+    micOutput->setData(cData);
+    micOutput->startListening();
 }
 
 

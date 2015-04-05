@@ -25,6 +25,6 @@ int main(int argc, char *argv[])
     
     ControlChannel::setGUIHandle(&w);
     Network::setGUIHandle(&w);
-
+    
     return a.exec();
 }

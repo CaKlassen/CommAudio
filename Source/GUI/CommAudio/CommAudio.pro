@@ -18,14 +18,16 @@ SOURCES += main.cpp\
     ControlChannel.cpp \
     Network.cpp \
     MusicBuffer.cpp \
-    micinfo.cpp
+    Mic.cpp \
+    micoutput.cpp
 
 HEADERS  += mainwindow.h \
     ControlChannel.h \
     Network.h \
     CMessage.h \
     MusicBuffer.h \
-    micinfo.h
+    Mic.h \
+    micoutput.h
 
 FORMS    += mainwindow.ui
 

@@ -32,11 +32,11 @@
 #include <errno.h>
 #include <QAudioDeviceInfo>
 #include <QAudioInput>
+
 #include "Network.h"
-
 #include "MusicBuffer.h"
-#include "micinfo.h"
-
+#include "Mic.h"
+#include "micoutput.h"
 
 #define BUFSIZE 8192
 
@@ -46,6 +46,7 @@ using std::cerr;
 using std::endl;
 
 // Client variables
+MainWindow *mWin;
 string currentSong;
 int songLength;
 vector<string> tracklist;
@@ -55,15 +56,12 @@ MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
 LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
+// Microphone variables
+Mic *mic;
+MicOutput *micOutput;
+
 ClientState cData;
 
-// Microphone variables
-QAudioDeviceInfo micInfo(QAudioDeviceInfo::defaultInputDevice());
-QAudioFormat micFormat;
-QAudioInput *micInput(0);
-QIODevice *micDevice(0);
-QByteArray micBuffer(MESSAGE_SIZE, 0);
-MicInfo *micAudioInfo;
 
 //the play button
 int starting = 0;
@@ -107,6 +105,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    mWin = this;
+    
     // Set up the client data structure
     cData.ip = "127.0.0.1";
     cData.port = 9000;
@@ -124,12 +124,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->mainToolBar->setContextMenuPolicy(Qt::PreventContextMenu);
 
     updateMulticastSong("", "", "");
+    
+    
+    mic = new Mic();
+    micOutput = new MicOutput();
 }
 
 MainWindow::~MainWindow()
 {
     WSACleanup();
     
+    delete mic;
+    delete micOutput;
     delete ui;
 }
 
@@ -245,7 +251,6 @@ void MainWindow::on_uDownloadButton_clicked()
             }
         }
     }
-
 }
 
 
@@ -258,9 +263,11 @@ void MainWindow::on_micButton_clicked()
 {
     MicOn = !MicOn;
     if (MicOn) {
+        mic->startSending();
         ui->micButton->setText("microphone ON");
     }
     else {
+        mic->stopSending();
         ui->micButton->setText("microphone OFF");
     }
 }
@@ -386,8 +393,18 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     else
     {
         // Microphone
-        std::thread micStart(startMicrophone, &cData);
-        micStart.detach();
+        if (!cData.connected)
+        {
+            startMicrophone(&cData, micOutput);
+        }
+        else
+        {
+            // Disable microphone input and output
+            mic->stopSending();
+            micOutput->stopListening();
+            
+            cData.connected = false;
+        }
     }
 }
 
@@ -621,7 +638,6 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
             if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
             {
                 cerr << "Failed to play audio." << endl;
-                //exit(1);
             }
         }
     }
@@ -632,31 +648,35 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
 }
 
 
-void sendMicrophone(SOCKET micSocket, SOCKADDR_IN *socketInfo)
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendMicrophone
+--
+-- DATE: April 3, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void sendMicrophone(SOCKET micSocket);
+--
+-- PARAMETERS:
+--		micSocket - the socket to send data to
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function starts the microphone input.
+----------------------------------------------------------------------------------------------------------------------*/
+void sendMicrophone(SOCKET micSocket)
 {
-    // Set microphone format
-    micFormat.setSampleRate(8000);
-    micFormat.setChannelCount(1);
-    micFormat.setSampleSize(16);
-    micFormat.setSampleType(QAudioFormat::SignedInt);
-    micFormat.setByteOrder(QAudioFormat::LittleEndian);
-    micFormat.setCodec("audio/pcm");
+    // Open the mic input
+    mic->setData(&cData);
+    mic->startSending();
     
-    // Set up the device
-    QAudioDeviceInfo info(QAudioDeviceInfo::defaultInputDevice());
-    if (!info.isFormatSupported(micFormat))
-    {
-        cerr << "Format not supported" << endl;
-        micFormat = info.nearestFormat(micFormat);
-    }
-    
-    micAudioInfo = new MicInfo(micFormat);
-    
-    // While we are still connected
-    while (cData.connected)
-    {
-        
-    }
+    // Wait until we are not connected
+    while (cData.connected);
 }
 
 
