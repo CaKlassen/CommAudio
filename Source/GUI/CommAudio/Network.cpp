@@ -27,6 +27,7 @@
 #include "mainwindow.h"
 #include "MusicBuffer.h"
 #include "ControlChannel.h"
+#include "micoutput.h"
 
 using std::cerr;
 using std::cout;
@@ -54,7 +55,10 @@ SOCKADDR_IN multicastServerInfo;
 struct ip_mreq multicastInterface;
 
 // Microphone Variables
-
+SOCKET micReceiveSocket;
+SOCKET micSendSocket;
+SOCKADDR_IN micReceiveInfo;
+SOCKADDR_IN micSendInfo;
 
 
 // Functions
@@ -380,6 +384,41 @@ bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin)
 
     return true;
 }
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: startMicrophone
+--
+-- DATE: April 2, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void startMicrophone(ClientState *cData);
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function opens a receiving and sending socket for client to client
+--     microphone transfer.
+----------------------------------------------------------------------------------------------------------------------*/
+void startMicrophone(ClientState *cData, MicOutput *micOutput)
+{
+    cData->connected = true;
+    
+    // Start sending
+    std::thread sendMic(sendMicrophone, micSendSocket);
+    sendMic.detach();
+    
+    micOutput->setData(cData);
+    micOutput->startListening();
+}
+
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {

@@ -30,10 +30,13 @@
 #include <thread>
 #include <stdio.h>
 #include <errno.h>
+#include <QAudioDeviceInfo>
+#include <QAudioInput>
+
 #include "Network.h"
-
 #include "MusicBuffer.h"
-
+#include "Mic.h"
+#include "micoutput.h"
 
 #define BUFSIZE 8192
 
@@ -43,6 +46,7 @@ using std::cerr;
 using std::endl;
 
 // Client variables
+MainWindow *mWin;
 string currentSong;
 int songLength;
 vector<string> tracklist;
@@ -50,8 +54,14 @@ QString filePath = "C:/";
 
 MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
+LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
+
+// Microphone variables
+Mic *mic;
+MicOutput *micOutput;
 
 ClientState cData;
+
 
 //the play button
 int starting = 0;
@@ -95,6 +105,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    mWin = this;
+    
     // Set up the client data structure
     cData.ip = "127.0.0.1";
     cData.port = 9000;
@@ -112,12 +124,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->mainToolBar->setContextMenuPolicy(Qt::PreventContextMenu);
 
     updateMulticastSong("", "", "");
+    
+    
+    mic = new Mic();
+    micOutput = new MicOutput();
 }
 
 MainWindow::~MainWindow()
 {
     WSACleanup();
     
+    delete mic;
+    delete micOutput;
     delete ui;
 }
 
@@ -233,7 +251,6 @@ void MainWindow::on_uDownloadButton_clicked()
             }
         }
     }
-
 }
 
 
@@ -246,9 +263,11 @@ void MainWindow::on_micButton_clicked()
 {
     MicOn = !MicOn;
     if (MicOn) {
+        mic->startSending();
         ui->micButton->setText("microphone ON");
     }
     else {
+        mic->stopSending();
         ui->micButton->setText("microphone OFF");
     }
 }
@@ -357,17 +376,38 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     //make sure we're in an appropriate tab
     if (mode < 0 || mode > 2) return;
 
-    if (cData.connected)
+    if (mode == 0 || mode == 1)
     {
-        disconnectIt();
+        // Server-based
+        if (cData.connected)
+        {
+            disconnectIt();
+        }
+        else
+        {
+            if (!connectIt()) return;
+    
+            cData.connected = true;
+        }
     }
     else
     {
-        if (!connectIt()) return;
-
-        cData.connected = true;
+        // Microphone
+        if (!cData.connected)
+        {
+            startMicrophone(&cData, micOutput);
+        }
+        else
+        {
+            // Disable microphone input and output
+            mic->stopSending();
+            micOutput->stopListening();
+            
+            cData.connected = false;
+        }
     }
 }
+
 
 //this is the button Ok on the config tab
 void MainWindow::on_cOKButton_clicked()
@@ -396,8 +436,18 @@ bool MainWindow::connectIt()
 
 void MainWindow::disconnectIt()
 {
+    // Clear the buffer and free audio structures
     musicBuffer.clear();
-
+    
+    waveOutPause(outputDevice);
+    waveOutClose(outputDevice);
+    
+    
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
+    }
+       
     //once disconnected all tabs are available again
     focusTab(-1);
 
@@ -508,8 +558,6 @@ void outputAudio(MusicBuffer *buffer)
 {
     WAVEFORMATEX format;
     
-    LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
-
     // Set up the wave format
     format.nSamplesPerSec = 44100;
     format.wBitsPerSample = 16;
@@ -590,8 +638,45 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
             if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
             {
                 cerr << "Failed to play audio." << endl;
-                //exit(1);
             }
         }
     }
+    else
+    {
+        free((LPWAVEHDR) dw1);
+    }
 }
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendMicrophone
+--
+-- DATE: April 3, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void sendMicrophone(SOCKET micSocket);
+--
+-- PARAMETERS:
+--		micSocket - the socket to send data to
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function starts the microphone input.
+----------------------------------------------------------------------------------------------------------------------*/
+void sendMicrophone(SOCKET micSocket)
+{
+    // Open the mic input
+    mic->setData(&cData);
+    mic->startSending();
+    
+    // Wait until we are not connected
+    while (cData.connected);
+}
+
+

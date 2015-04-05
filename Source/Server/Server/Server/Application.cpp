@@ -496,7 +496,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		SOCKET cSock;
 
 		if ((cSock = socket(PF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
-		{
+		{	
 			cerr << "Failed to open client stream socket." << endl;
 			return;
 		}
