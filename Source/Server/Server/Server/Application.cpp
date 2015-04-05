@@ -314,7 +314,7 @@ bool startMulticast()
 		return false;
 	}
 
-	u_long ttl = 10;
+	u_long ttl = 0;
 	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl)) == SOCKET_ERROR)
 	{
 		cerr << "Failed to set time to live." << endl;
