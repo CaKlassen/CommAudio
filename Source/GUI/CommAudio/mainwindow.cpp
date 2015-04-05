@@ -669,7 +669,7 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
 -- NOTES:
 --     This function starts the microphone input.
 ----------------------------------------------------------------------------------------------------------------------*/
-void sendMicrophone(SOCKET micSocket)
+void sendMicrophone()
 {
     // Open the mic input
     mic->setData(&cData);
