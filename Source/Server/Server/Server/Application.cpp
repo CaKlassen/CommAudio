@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <map>
 #include <thread>
+#include <deque>
 #include <WS2tcpip.h>
 
 #include "dirent.h"
@@ -36,6 +37,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::vector;
+using std::deque;
 using std::map;
 using std::string;
 using std::stringstream;
@@ -46,6 +48,8 @@ SOCKET listeningSocket;
 int port;
 vector<string> tracklist;
 bool done = false;
+
+deque<Client *> pendingClients;
 
 // Audio variable
 libvlc_instance_t *inst;
@@ -314,7 +318,7 @@ bool startMulticast()
 		return false;
 	}
 
-	u_long ttl = 0;
+	u_long ttl = 1;
 	if (setsockopt(multicastSocket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl)) == SOCKET_ERROR)
 	{
 		cerr << "Failed to set time to live." << endl;
@@ -493,30 +497,34 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 
 	if (!usingTCP)
 	{
-		SOCKET cSock;
+		// Load the song
+		stringstream songDir;
+		songDir << MUSIC_LOCATION << "/" << song;
+		libvlc_media_t *media = libvlc_media_new_path(inst, songDir.str().c_str());
 
-		if ((cSock = socket(PF_INET, SOCK_DGRAM, 0)) == SOCKET_ERROR)
-		{	
-			cerr << "Failed to open client stream socket." << endl;
-			return;
-		}
+		// Add the Client to the pending clients queue
+		c->unicastSocket = socket(PF_INET, SOCK_DGRAM, 0);
+		pendingClients.push_back(c);
 
-		char test[MESSAGE_SIZE];
+		// Start playing the song
+		mediaPlayer = libvlc_media_player_new_from_media(media);
+		libvlc_media_release(media);
+		libvlc_media_player_play(mediaPlayer);
 
-		for (int i = 0; i < MESSAGE_SIZE; i++)
+		while (!libvlc_media_player_is_playing(mediaPlayer))
 		{
-			test[i] = 'T';
+			// Wait for the song to start
 		}
 
-		if (sendto(cSock, test, MESSAGE_SIZE, 0, (sockaddr *)&(c->sin_udp), sizeof(c->sin_udp)) <= 0)
+		// While we are not done and there is data left to send
+		while (!done && libvlc_media_player_is_playing(mediaPlayer))
 		{
-			cerr << "Failed to send stream data." << endl;
-			return;
+			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
+
+			Sleep(1000);
 		}
 
-		cout << "Sent stream data." << endl;
-
-		closesocket(cSock);
+		libvlc_media_player_release(mediaPlayer);
 	}
 	else
 	{
@@ -677,7 +685,19 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 		buffer = new char[dataSize];
 		memcpy(buffer, p_pcm_buffer + dataSent, messageSize);
 
-		sendto(multicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+		if (sMode == MULTICAST)
+		{
+			sendto(multicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &multicastDestInfo, sizeof(multicastDestInfo));
+		}
+		else
+		{
+			Client *nextClient = pendingClients.front();
+			pendingClients.pop_front();
+
+			sendto(nextClient->unicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &nextClient->sin_udp, sizeof(nextClient->sin_udp));
+
+			pendingClients.push_back(nextClient);
+		}
 
 		dataSize -= messageSize;
 		dataSent += messageSize;

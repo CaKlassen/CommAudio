@@ -31,6 +31,7 @@ struct SOCKET_INFORMATION
 struct Client
 {
 	SOCKET_INFORMATION socketinfo;
+	SOCKET unicastSocket;
 	sockaddr_in sin_udp;
 	sockaddr_in cInfo;
 };

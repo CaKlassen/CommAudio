@@ -54,12 +54,6 @@ SOCKADDR_IN multicastInfo;
 SOCKADDR_IN multicastServerInfo;
 struct ip_mreq multicastInterface;
 
-// Microphone Variables
-SOCKET micReceiveSocket;
-SOCKET micSendSocket;
-SOCKADDR_IN micReceiveInfo;
-SOCKADDR_IN micSendInfo;
-
 
 // Functions
 
@@ -412,7 +406,7 @@ void startMicrophone(ClientState *cData, MicOutput *micOutput)
     cData->connected = true;
     
     // Start sending
-    std::thread sendMic(sendMicrophone, micSendSocket);
+    std::thread sendMic(sendMicrophone);
     sendMic.detach();
     
     micOutput->setData(cData);
