@@ -186,6 +186,7 @@ void handleControlMessage(CMessage *cMsg)
         case END_SONG:
         {
             // The currently playing song has ended
+            endSong();
             break;
         }
 	}

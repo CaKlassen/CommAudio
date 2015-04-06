@@ -535,6 +535,15 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		// Remove the serviced client from the list
 		pendingClients.pop_front();
 
+		// Tell the client that the song is done
+		CMessage cMsg;
+		cMsg.msgType = END_SONG;
+
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+
 		// Unlock the stream mutex
 		unicastMutex.unlock();
 	}

@@ -66,6 +66,7 @@ ClientState cData;
 //the play button
 int starting = 0;
 int currentMusic = -1;
+bool unicastSongDone;
 
 //the characters to be shown when the song is being downloaded or played
 QString downloadAscii = "D";
@@ -112,6 +113,8 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.port = 9000;
     cData.connected = false;
     cData.sMode = NOTHING;
+    
+    unicastSongDone = true;
 
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
@@ -166,48 +169,52 @@ MainWindow::~MainWindow()
 ----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_uPlayButton_clicked()
 {
-    //This selects the item and then just make it blue
-    QListWidgetItem *theItem = ui->uSongList->currentItem();
-    QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
-
-    if (playingIcon->text() == "")
+    if (unicastSongDone)
     {
-        playingIcon->setText(playAscii);
-
-        if (theItem->textColor() == downloadColor)
-            theItem->setTextColor(bothColor);
-        else
-            theItem->setTextColor(playColor);
-
-
-        currentMusic = ui->uSongList->currentRow();
-    }
-
-    //all items on the list will be reverted back to normal
-    if (true)
-    {
-        for(int i = 0; i < ui->uSongList->count(); ++i)
+        //This selects the item and then just make it blue
+        QListWidgetItem *theItem = ui->uSongList->currentItem();
+        QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
+    
+        if (playingIcon->text() == "")
         {
-            QListWidgetItem *allItems = ui->uSongList->item(i);
-            QListWidgetItem *playingIcons = ui->uPlayList->item(i);
-            if (playingIcons->text() == playAscii && currentMusic != i)
+            playingIcon->setText(playAscii);
+    
+            if (theItem->textColor() == downloadColor)
+                theItem->setTextColor(bothColor);
+            else
+                theItem->setTextColor(playColor);
+    
+    
+            currentMusic = ui->uSongList->currentRow();
+        }
+    
+        //all items on the list will be reverted back to normal
+        if (true)
+        {
+            for(int i = 0; i < ui->uSongList->count(); ++i)
             {
-                playingIcons->setText("");
-
-                if (allItems->textColor() == bothColor)
-                    allItems->setTextColor(downloadColor);
-                else
-                    allItems->setTextColor(defaultColor);
+                QListWidgetItem *allItems = ui->uSongList->item(i);
+                QListWidgetItem *playingIcons = ui->uPlayList->item(i);
+                if (playingIcons->text() == playAscii && currentMusic != i)
+                {
+                    playingIcons->setText("");
+    
+                    if (allItems->textColor() == bothColor)
+                        allItems->setTextColor(downloadColor);
+                    else
+                        allItems->setTextColor(defaultColor);
+                }
             }
         }
-    }
-
-    // Start receiving audio
-    string song;
-    song = ui->uSongList->item(currentMusic)->text().toStdString();
-    std::thread streamThread(streamMusic, &cData, song, &musicBuffer);
-    streamThread.detach();
     
+        // Start receiving audio
+        string song;
+        song = ui->uSongList->item(currentMusic)->text().toStdString();
+        
+        unicastSongDone = false;
+        std::thread streamThread(streamMusic, &cData, song, &musicBuffer, &unicastSongDone);
+        streamThread.detach();
+    }
     //starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
     //ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
 }
@@ -628,7 +635,7 @@ void outputAudio(MusicBuffer *buffer)
 ----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-    if (cData.connected)
+    if ((cData.connected && cData.sMode == MULTICAST) || (!unicastSongDone && cData.sMode == UNICAST))
     {
         if (uMsg == WOM_DONE)
         {
@@ -680,3 +687,57 @@ void sendMicrophone()
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: endSong
+--
+-- DATE: April 5, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void endSong();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function's functionality depends on the server mode:
+--
+--     UNICAST - the current song has finished and can stop being played
+--     MULTICAST - the current song has finished and the client should clear the buffer
+--          in anticipation of the next one.
+----------------------------------------------------------------------------------------------------------------------*/
+void endSong()
+{
+    switch(cData.sMode)
+    {
+        case UNICAST:
+        {
+            std::cout << "Received end song" << endl;
+            unicastSongDone = true;
+            disconnectUnicast();
+        
+            //waveOutPause(outputDevice);
+            //waveOutClose(outputDevice);
+        
+            musicBuffer.clear();  
+            
+            for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+            {
+                waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
+            }        
+            
+            std::cout << "Received end song DONE" << endl;
+            break; 
+        }
+        
+        case MULTICAST:
+        {
+            break;         
+        }
+    }
+}
