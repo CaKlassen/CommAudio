@@ -34,6 +34,7 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 /// VARIABLES
 
 vector<Client*> clients;
+deque<Client*> pendingUnicastClients;
 bool isAlive = false;
 AudioMetaData *mData;
 
@@ -223,7 +224,7 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 
 	acceptedSocket = accept(listenSocket, NULL, NULL);
 	c = createClient();
-	c->socketinfo.socket = acceptedSocket;
+	c->controlSI.socket = acceptedSocket;
 
 	CMessage cMsg;
 	cMsg.msgType = START_CONNECTION;
@@ -237,17 +238,17 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 
 	if (success)
 	{
-		cout << "Client connected [" << c->socketinfo.socket << "]" << endl;
+		cout << "Client connected [" << c->controlSI.socket << "]" << endl;
 
 		// Retrieve the client IP
-		int size = sizeof(c->cInfo);
-		if (getpeername(acceptedSocket, (sockaddr *)&c->cInfo, &size) != 0)
+		int size = sizeof(c->sinTCP);
+		if (getpeername(acceptedSocket, (sockaddr *)&c->sinTCP, &size) != 0)
 		{
 			cerr << "Failed to get peer name." << endl;
 		}
 		else
 		{
-			cout << "Peer name: " << inet_ntoa(c->cInfo.sin_addr) << endl;
+			cout << "Peer name: " << inet_ntoa(c->sinTCP.sin_addr) << endl;
 		}
 
 		if (sMode == MULTICAST)
@@ -319,18 +320,23 @@ Client* Server::createClient()
 	return clients.back();
 }
 
+std::deque<Client*>& Server::getPendingUnicastClients()
+{
+	return pendingUnicastClients;
+}
+
 bool Server::recv(Client* c)
 {
 	DWORD bytesReceived = 0;
 	DWORD flags = 0;
 
-	//c->socketinfo.overlapped = {};
-	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
-	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
+	//c->controlSI.overlapped = {};
+	c->controlSI.dataBuf.len = DATA_BUFSIZE;
+	c->controlSI.dataBuf.buf = c->controlSI.buffer;
 
-	if (WSARecv(c->socketinfo.socket,
-		&(c->socketinfo.dataBuf), 1, &bytesReceived, &flags,
-		&(c->socketinfo.overlapped), onRecv
+	if (WSARecv(c->controlSI.socket,
+		&(c->controlSI.dataBuf), 1, &bytesReceived, &flags,
+		&(c->controlSI.overlapped), onRecv
 		) == SOCKET_ERROR)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
@@ -347,17 +353,17 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 {
 	DWORD bytesSent = 0;
 
-	//c->socketinfo.overlapped = {};
-	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
-	strcpy_s(c->socketinfo.buffer, msg.c_str());
-	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
+	//c->controlSI.overlapped = {};
+	c->controlSI.dataBuf.len = DATA_BUFSIZE;
+	strcpy_s(c->controlSI.buffer, msg.c_str());
+	c->controlSI.dataBuf.buf = c->controlSI.buffer;
 
 	if (sin)
 	{
-		if (WSASendTo(c->socketinfo.socket,
-			&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
+		if (WSASendTo(c->controlSI.socket,
+			&(c->controlSI.dataBuf), 1, &bytesSent, 0,
 			(sockaddr*)sin, sizeof(*sin),
-			&(c->socketinfo.overlapped), NULL
+			&(c->controlSI.overlapped), NULL
 			) == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSA_IO_PENDING)
@@ -366,13 +372,13 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 				return false;
 			}
 		}
-		cout << "send udp> " << c->socketinfo.buffer << endl;
+		cout << "send udp> " << c->controlSI.buffer << endl;
 	}
 	else
 	{
-		if (WSASend(c->socketinfo.socket,
-			&(c->socketinfo.dataBuf), 1, &bytesSent, 0,
-			&(c->socketinfo.overlapped), NULL
+		if (WSASend(c->controlSI.socket,
+			&(c->controlSI.dataBuf), 1, &bytesSent, 0,
+			&(c->controlSI.overlapped), NULL
 			) == SOCKET_ERROR)
 		{
 			if (WSAGetLastError() != WSA_IO_PENDING)
@@ -381,7 +387,7 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 				return false;
 			}
 		}
-		cout << "send tcp> " << c->socketinfo.buffer << endl;
+		cout << "send tcp> " << c->controlSI.buffer << endl;
 	}
 
 	return true;
@@ -408,11 +414,12 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 -- NOTES:
 --     This function removes a client from the list of connected clients.
 ----------------------------------------------------------------------------------------------------------------------*/
-void Server::disconnectClient(string ip)
+void Server::disconnectClient(Client* c)
 {
-	// Close the connection
-
-	// Remove the client from the list of clients
+	closesocket(c->controlSI.socket);
+	clients.erase(std::remove(clients.begin(), clients.end(), c), clients.end());
+	pendingUnicastClients.erase(std::remove(pendingUnicastClients.begin(), pendingUnicastClients.end(), c), pendingUnicastClients.end());
+	delete c;
 }
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
@@ -423,7 +430,7 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
 	if (bytesTransferred == 0 || error == 10054)
 	{
-		cout << "Client disconnected [" << C->socketinfo.socket << "]" << endl;
+		cout << "Client disconnected [" << C->controlSI.socket << "]" << endl;
 	}
 	else if (error != 0)
 	{
@@ -432,15 +439,13 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
 	if (error != 0 || bytesTransferred == 0)
 	{
-		closesocket(C->socketinfo.socket);
-		clients.erase(std::remove(clients.begin(), clients.end(), C), clients.end());
-		delete C;
+		Server::disconnectClient(C);
 		return;
 	}
 
-	cout << "recv> " << C->socketinfo.buffer << endl;
+	cout << "recv> " << C->controlSI.buffer << endl;
 
-	parseControlString(std::string(C->socketinfo.buffer), &cm);
+	parseControlString(std::string(C->controlSI.buffer), &cm);
 	handleControlMessage(&cm, C);
 
 	Server::recv(C);

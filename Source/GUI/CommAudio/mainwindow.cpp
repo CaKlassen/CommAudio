@@ -170,6 +170,8 @@ void MainWindow::on_uPlayButton_clicked()
     QListWidgetItem *theItem = ui->uSongList->currentItem();
     QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
 
+    if (!theItem || !playingIcon) return;
+
     if (playingIcon->text() == "")
     {
         playingIcon->setText(playAscii);
@@ -218,11 +220,13 @@ void MainWindow::on_uDownloadButton_clicked()
 {
     //This selects the item and then just make it blue
     QListWidgetItem *theItem = ui->uSongList->currentItem();
-    QListWidgetItem *playingIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
+    QListWidgetItem *downloadIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
 
-    if (playingIcon->text() == "")
+    if (!theItem || !downloadIcon) return;
+
+    if (downloadIcon->text() == "")
     {
-        playingIcon->setText(downloadAscii);
+        downloadIcon->setText(downloadAscii);
 
         if (theItem->textColor() == playColor)
             theItem->setTextColor(bothColor);

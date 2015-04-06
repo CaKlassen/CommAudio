@@ -24,7 +24,6 @@
 #include <cstdlib>
 #include <map>
 #include <thread>
-#include <deque>
 #include <WS2tcpip.h>
 
 #include "dirent.h"
@@ -48,8 +47,6 @@ SOCKET listeningSocket;
 int port;
 vector<string> tracklist;
 bool done = false;
-
-deque<Client *> pendingClients;
 
 // Audio variable
 libvlc_instance_t *inst;
@@ -398,7 +395,7 @@ bool playMulticast()
 		// Start the Send Current Song thread
 		std::thread tCurrentSong(sendCurrentSongMulti, randSong, &metaData);
 		tCurrentSong.detach();
-		
+
 		while (!libvlc_media_player_is_playing(mediaPlayer))
 		{
 			// Wait for the song to start
@@ -454,7 +451,7 @@ bool playMulticast()
 ----------------------------------------------------------------------------------------------------------------------*/
 void playUnicast(Client *c, string song, string ip)
 {
-	if (createSockAddrIn(c->sin_udp, ip, port + 1))
+	if (createSockAddrIn(c->sinUDP, ip, port + 1))
 	{
 		std::thread tSendUnicast(sendCurrentSongUni, c, song, false);
 		tSendUnicast.detach();
@@ -504,7 +501,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 
 		// Add the Client to the pending clients queue
 		c->unicastSocket = socket(PF_INET, SOCK_DGRAM, 0);
-		pendingClients.push_back(c);
+		Server::getPendingUnicastClients().push_back(c);
 
 		// Start playing the song
 		mediaPlayer = libvlc_media_player_new_from_media(media);
@@ -691,12 +688,15 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 		}
 		else
 		{
-			Client *nextClient = pendingClients.front();
-			pendingClients.pop_front();
+			if (!Server::getPendingUnicastClients().empty())
+			{
+				Client* nextClient = Server::getPendingUnicastClients().front();
+				Server::getPendingUnicastClients().pop_front();
 
-			sendto(nextClient->unicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &nextClient->sin_udp, sizeof(nextClient->sin_udp));
+				sendto(nextClient->unicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &nextClient->sinUDP, sizeof(nextClient->sinUDP));
 
-			pendingClients.push_back(nextClient);
+				Server::getPendingUnicastClients().push_back(nextClient);
+			}
 		}
 
 		dataSize -= messageSize;
