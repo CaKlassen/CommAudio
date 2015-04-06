@@ -46,8 +46,9 @@ namespace Network
 bool connectControlChannel(ClientState *cData);
 void disconnectControlChannel();
 bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
-void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer);
+void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer, bool *songDone);
 void startMicrophone(ClientState *cData, MicOutput *micOutput);
+void disconnectUnicast();
 
 namespace ControlSocket
 {

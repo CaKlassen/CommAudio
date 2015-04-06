@@ -25,6 +25,7 @@
 #include <map>
 #include <thread>
 #include <deque>
+#include <mutex>
 #include <WS2tcpip.h>
 
 #include "dirent.h"
@@ -36,6 +37,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::mutex;
 using std::vector;
 using std::deque;
 using std::map;
@@ -49,6 +51,7 @@ int port;
 vector<string> tracklist;
 bool done = false;
 
+mutex unicastMutex;
 deque<Client *> pendingClients;
 
 // Audio variable
@@ -506,25 +509,43 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		c->unicastSocket = socket(PF_INET, SOCK_DGRAM, 0);
 		pendingClients.push_back(c);
 
-		// Start playing the song
-		mediaPlayer = libvlc_media_player_new_from_media(media);
-		libvlc_media_release(media);
-		libvlc_media_player_play(mediaPlayer);
+		// Lock the unicast stream mutex
+		unicastMutex.lock();
 
-		while (!libvlc_media_player_is_playing(mediaPlayer))
+		// Start playing the song
+		libvlc_media_player_t *mp = libvlc_media_player_new_from_media(media);
+		libvlc_media_release(media);
+		libvlc_media_player_play(mp);
+
+		while (!libvlc_media_player_is_playing(mp))
 		{
 			// Wait for the song to start
 		}
 
 		// While we are not done and there is data left to send
-		while (!done && libvlc_media_player_is_playing(mediaPlayer))
+		while (!done && libvlc_media_player_is_playing(mp))
 		{
 			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
 
 			Sleep(1000);
 		}
 
-		libvlc_media_player_release(mediaPlayer);
+		libvlc_media_player_release(mp);
+
+		// Remove the serviced client from the list
+		pendingClients.pop_front();
+
+		// Tell the client that the song is done
+		CMessage cMsg;
+		cMsg.msgType = END_SONG;
+
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+
+		// Unlock the stream mutex
+		unicastMutex.unlock();
 	}
 	else
 	{
@@ -692,11 +713,7 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 		else
 		{
 			Client *nextClient = pendingClients.front();
-			pendingClients.pop_front();
-
 			sendto(nextClient->unicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &nextClient->sin_udp, sizeof(nextClient->sin_udp));
-
-			pendingClients.push_back(nextClient);
 		}
 
 		dataSize -= messageSize;
