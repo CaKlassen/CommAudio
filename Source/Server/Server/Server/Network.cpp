@@ -20,6 +20,9 @@
 #include "Network.h"
 
 #include <iostream>
+#include <sstream>
+#include <algorithm>
+#include "Application.h"
 #include "ControlChannel.h"
 
 using namespace std;
@@ -32,12 +35,13 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
 vector<Client*> clients;
 bool isAlive = false;
+AudioMetaData *mData;
 
 /// GENERAL STUFF
 
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port)
 {
-	sin = {};
+	//sin = {};
 	sin.sin_family = AF_INET;   // Specify the Internet (TCP/IP) Address family
 	sin.sin_port = htons(port); // Convert to network byte order
 
@@ -119,6 +123,75 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 	return true;
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendCurrentSongMulti
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: sendCurrentSongMulti(int song);
+--
+-- PARAMETERS:
+--		song - the song number in the tracklist to send
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function sends the current song to all connected clients.
+----------------------------------------------------------------------------------------------------------------------*/
+void sendCurrentSongMulti(int song, AudioMetaData *metaData)
+{
+	mData = metaData;
+
+	CMessage cMsg;
+	cMsg.msgType = NOW_PLAYING;
+
+	if (metaData->title == NULL)
+	{
+		cMsg.msgData.emplace_back("Unknown");
+	}
+	else
+	{
+		cMsg.msgData.emplace_back(metaData->title);
+	}
+
+	if (metaData->artist == NULL)
+	{
+		cMsg.msgData.emplace_back("Unknown");
+	}
+	else
+	{
+		cMsg.msgData.emplace_back(metaData->artist);
+	}
+
+	if (metaData->album == NULL)
+	{
+		cMsg.msgData.emplace_back("Unknown");
+	}
+	else
+	{
+		cMsg.msgData.emplace_back(metaData->album);
+	}
+
+	string controlString;
+	createControlString(cMsg, controlString);
+
+	// Loop through all clients in the connected client list
+	vector<Client*>::iterator it;
+
+	for (it = clients.begin(); it != clients.end(); it++)
+	{
+		Server::send(*it, controlString);
+	}
+}
+
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: acceptConnection
 --
@@ -129,18 +202,20 @@ bool Server::openListener(SOCKET& listenSocket, unsigned short int port)
 -- DESIGNER: Melvin Loho
 --
 -- PROGRAMMER: Melvin Loho
+--			   Chris Klassen
 --
--- INTERFACE: bool Server::acceptConnection(SOCKET listenSocket)
+-- INTERFACE: bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 --
 -- PARAMETERS:
 --		listenSocket - the socket to accept connections from
+--		sMode - the server's current mode
 --
 -- RETURNS: bool - whether the "start connection" message was sent successfuly to the client after their acceptance
 --
 -- NOTES:
 --     This function accepts an incoming client connection request.
 ----------------------------------------------------------------------------------------------------------------------*/
-bool Server::acceptConnection(SOCKET listenSocket)
+bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 {
 	Client* c = nullptr;
 	string startConnMsg;
@@ -150,16 +225,90 @@ bool Server::acceptConnection(SOCKET listenSocket)
 	c = createClient();
 	c->socketinfo.socket = acceptedSocket;
 
-	createControlString(CMessage{ START_CONNECTION }, startConnMsg);
+	CMessage cMsg;
+	cMsg.msgType = START_CONNECTION;
+	stringstream ss;
+	ss << sMode;
+	cMsg.msgData.emplace_back(ss.str());
+
+	createControlString(cMsg, startConnMsg);
 
 	bool success = send(c, startConnMsg);
 
 	if (success)
 	{
-		cout << "CLIENT CONNECTED" << endl;
-	}
+		cout << "Client connected [" << c->socketinfo.socket << "]" << endl;
 
-	recv(c); // start the recursion
+		// Retrieve the client IP
+		int size = sizeof(c->cInfo);
+		if (getpeername(acceptedSocket, (sockaddr *)&c->cInfo, &size) != 0)
+		{
+			cerr << "Failed to get peer name." << endl;
+		}
+		else
+		{
+			cout << "Peer name: " << inet_ntoa(c->cInfo.sin_addr) << endl;
+		}
+
+		if (sMode == MULTICAST)
+		{
+			// Send current song
+			CMessage cMsg;
+			cMsg.msgType = NOW_PLAYING;
+
+			if (mData->title == NULL)
+			{
+				cMsg.msgData.emplace_back("Unknown");
+			}
+			else
+			{
+				cMsg.msgData.emplace_back(mData->title);
+			}
+
+			if (mData->artist == NULL)
+			{
+				cMsg.msgData.emplace_back("Unknown");
+			}
+			else
+			{
+				cMsg.msgData.emplace_back(mData->artist);
+			}
+
+			if (mData->album == NULL)
+			{
+				cMsg.msgData.emplace_back("Unknown");
+			}
+			else
+			{
+				cMsg.msgData.emplace_back(mData->album);
+			}
+
+			string controlString;
+			createControlString(cMsg, controlString);
+
+			Server::send(c, controlString);
+		}
+		else
+		{
+			// Send tracklist
+			CMessage cMsg;
+			cMsg.msgType = TRACK_LIST;
+			vector<string>* tlist = getTracklist();
+
+			vector<string>::iterator it;
+			for (it = tlist->begin(); it != tlist->end(); it++)
+			{
+				cMsg.msgData.emplace_back(*it);
+			}
+
+			string controlString;
+			createControlString(cMsg, controlString);
+
+			Server::send(c, controlString);
+		}
+
+		recv(c); // start the recursion
+	}
 
 	return success;
 }
@@ -175,7 +324,7 @@ bool Server::recv(Client* c)
 	DWORD bytesReceived = 0;
 	DWORD flags = 0;
 
-	c->socketinfo.overlapped = {};
+	//c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
@@ -198,9 +347,9 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 {
 	DWORD bytesSent = 0;
 
-	c->socketinfo.overlapped = {};
+	//c->socketinfo.overlapped = {};
 	c->socketinfo.dataBuf.len = DATA_BUFSIZE;
-	strcpy(c->socketinfo.buffer, msg.c_str());
+	strcpy_s(c->socketinfo.buffer, msg.c_str());
 	c->socketinfo.dataBuf.buf = c->socketinfo.buffer;
 
 	if (sin)
@@ -268,25 +417,23 @@ void Server::disconnectClient(string ip)
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
-	DWORD RecvBytes;
-	DWORD flags;
 	CMessage cm;
 
 	Client* C = (Client*)overlapped;
 
-	if (error != 0)
+	if (bytesTransferred == 0 || error == 10054)
+	{
+		cout << "Client disconnected [" << C->socketinfo.socket << "]" << endl;
+	}
+	else if (error != 0)
 	{
 		cerr << "I/O operation failed. Error " << error << endl;
-	}
-
-	if (bytesTransferred == 0)
-	{
-		cout << "Closing socket " << C->socketinfo.socket << endl;
 	}
 
 	if (error != 0 || bytesTransferred == 0)
 	{
 		closesocket(C->socketinfo.socket);
+		clients.erase(std::remove(clients.begin(), clients.end(), C), clients.end());
 		delete C;
 		return;
 	}

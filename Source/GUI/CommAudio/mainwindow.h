@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <vector>
+#include <winsock2.h>
+#include "Network.h"
 
 namespace Ui {
 class MainWindow;
@@ -17,9 +19,11 @@ public:
     ~MainWindow();
     void setTracklist(std::vector<std::string> *songs);
     void disconnectIt();
-    void connectIt();
+    bool connectIt();
     void focusTab(int tabNumber);
     void errorMessage(QString message);
+    void updateServerMode(ServerMode sMode);
+    void updateMulticastSong(std::string title, std::string artist, std::string album);
 
 private slots:
     void on_uPlayButton_clicked();
@@ -42,5 +46,10 @@ private:
     Ui::MainWindow *ui;
 
 };
+
+void outputAudio(MusicBuffer *buffer);
+void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
+void sendMicrophone();
+void endSong();
 
 #endif // MAINWINDOW_H

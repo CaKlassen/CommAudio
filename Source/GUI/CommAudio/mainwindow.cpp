@@ -11,41 +11,62 @@
 --
 -- DESIGNER: Jonathan Chu
 --           Chris Klassen
+--           Melvin Loho
 --
 -- PROGRAMMER: Jonathan Chu
 --             Chris Klassen
+--             Melvin Loho
 --
 -- NOTES:
 --      This file contains functionality to handle GUI interaction and display.
 ----------------------------------------------------------------------------------------------------------------------*/
-
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QSlider>
 #include <vector>
-#include "Network.h"
+#include <iostream>
+#include <thread>
 #include <stdio.h>
-#include <winsock2.h>
 #include <errno.h>
+#include <QAudioDeviceInfo>
+#include <QAudioInput>
+
+#include "Network.h"
+#include "MusicBuffer.h"
+#include "Mic.h"
+#include "micoutput.h"
 
 #define BUFSIZE 8192
 
 using std::string;
 using std::vector;
+using std::cerr;
+using std::endl;
 
 // Client variables
+MainWindow *mWin;
 string currentSong;
 int songLength;
 vector<string> tracklist;
+QString filePath = "C:/";
+
+MusicBuffer musicBuffer;
+HWAVEOUT outputDevice;
+LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
+
+// Microphone variables
+Mic *mic;
+MicOutput *micOutput;
 
 ClientState cData;
 
-//default settings as of now
-QString IP = "default";
-QString filePath = "c:/";
-int port = 4985;
+
+//the play button
+int starting = 0;
+int currentMusic = -1;
+bool unicastSongDone;
 
 //the characters to be shown when the song is being downloaded or played
 QString downloadAscii = "D";
@@ -85,85 +106,117 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    mWin = this;
+    
     // Set up the client data structure
     cData.ip = "127.0.0.1";
-    cData.port = 7000;
+    cData.port = 9000;
     cData.connected = false;
-    cData.sMode = UNICAST;//NOTHING;
+    cData.sMode = NOTHING;
+    
+    unicastSongDone = true;
 
-    IP = QString::fromStdString(cData.ip);
-    port = cData.port;
-
-    ui->cIPAddressText->setText(IP);
-    ui->cPortText->setText(QString::number(port));
+    ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
+    ui->cPortText->setText(QString::number(cData.port));
     ui->cFilepathText->setText(filePath);
-    /* Populates the list widget  */
-    for(int i= 1; i < 10; i++)
-    {
-        ui->uSongList->addItem("Song number " + QString::number(i));
 
-        ui->uPlayList->addItem("");
-        ui->uPlayList->item(i-1)->setTextColor(playColor);
-
-        ui->uDownloadList->addItem("");
-        ui->uDownloadList->item(i-1)->setTextColor(downloadColor);
-
-        if (i == 1)
-            ui->uSongList->setCurrentRow(0);
-    }
     ui->uSongList->setFrameShape(QFrame::NoFrame);
     ui->uPlayList->setFrameShape(QFrame::NoFrame);
     ui->uDownloadList->setFrameShape(QFrame::NoFrame);
+
+    ui->mainToolBar->setContextMenuPolicy(Qt::PreventContextMenu);
+
+    updateMulticastSong("", "", "");
+    
+    
+    mic = new Mic();
+    micOutput = new MicOutput();
 }
 
 MainWindow::~MainWindow()
 {
+    WSACleanup();
+    
+    delete mic;
+    delete micOutput;
     delete ui;
 }
 
-//the play button
-int starting = 0;
-int currentMusic = -1;
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: on_uPlayButton_clicked
+--
+-- DATE: March 31, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: 
+--      Jonathan Chu
+--      Chris Klassen
+--
+-- PROGRAMMER: 
+--      Jonathan Chu
+--      Chris Klassen
+--
+-- INTERFACE: void on_uPlayButton_clicked();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function requests a song from the server to be streamed.
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_uPlayButton_clicked()
 {
-    //This selects the item and then just make it blue
-    QListWidgetItem *theItem = ui->uSongList->currentItem();
-    QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
-
-    if (playingIcon->text() == "")
+    if (unicastSongDone)
     {
-        playingIcon->setText(playAscii);
-
-        if (theItem->textColor() == downloadColor)
-            theItem->setTextColor(bothColor);
-        else
-            theItem->setTextColor(playColor);
-
-
-        currentMusic = ui->uSongList->currentRow();
-    }
-
-    //all items on the list will be reverted back to normal
-    if (true)
-    {
-        for(int i = 0; i < ui->uSongList->count(); ++i)
+        //This selects the item and then just make it blue
+        QListWidgetItem *theItem = ui->uSongList->currentItem();
+        QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
+    
+        if (playingIcon->text() == "")
         {
-            QListWidgetItem *allItems = ui->uSongList->item(i);
-            QListWidgetItem *playingIcons = ui->uPlayList->item(i);
-            if (playingIcons->text() == playAscii && currentMusic != i)
+            playingIcon->setText(playAscii);
+    
+            if (theItem->textColor() == downloadColor)
+                theItem->setTextColor(bothColor);
+            else
+                theItem->setTextColor(playColor);
+    
+    
+            currentMusic = ui->uSongList->currentRow();
+        }
+    
+        //all items on the list will be reverted back to normal
+        if (true)
+        {
+            for(int i = 0; i < ui->uSongList->count(); ++i)
             {
-                playingIcons->setText("");
-
-                if (allItems->textColor() == bothColor)
-                    allItems->setTextColor(downloadColor);
-                else
-                    allItems->setTextColor(defaultColor);
+                QListWidgetItem *allItems = ui->uSongList->item(i);
+                QListWidgetItem *playingIcons = ui->uPlayList->item(i);
+                if (playingIcons->text() == playAscii && currentMusic != i)
+                {
+                    playingIcons->setText("");
+    
+                    if (allItems->textColor() == bothColor)
+                        allItems->setTextColor(downloadColor);
+                    else
+                        allItems->setTextColor(defaultColor);
+                }
             }
         }
+    
+        // Start receiving audio
+        string song;
+        song = ui->uSongList->item(currentMusic)->text().toStdString();
+        
+        unicastSongDone = false;
+        std::thread streamThread(streamMusic, &cData, song, &musicBuffer, &unicastSongDone);
+        streamThread.detach();
     }
-
-    starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
-    ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
+    //starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
+    //ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
 }
 
 //the download button
@@ -205,7 +258,6 @@ void MainWindow::on_uDownloadButton_clicked()
             }
         }
     }
-
 }
 
 
@@ -218,9 +270,11 @@ void MainWindow::on_micButton_clicked()
 {
     MicOn = !MicOn;
     if (MicOn) {
+        mic->startSending();
         ui->micButton->setText("microphone ON");
     }
     else {
+        mic->stopSending();
         ui->micButton->setText("microphone OFF");
     }
 }
@@ -242,6 +296,37 @@ void MainWindow::on_mVolumeButton_clicked()
     QMessageBox pop;
     pop.setText("Display the volume");
     pop.exec();
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: updateMulticastSong
+--
+-- DATE: March 31, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void updateMulticastSong(string title, string artist, string album);
+--
+-- PARAMETERS:
+--      title - the title of the current song
+--      artist - the artist of the current song
+--      album - the album of the current song
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function updates the current multicast song on the GUI.
+----------------------------------------------------------------------------------------------------------------------*/
+void MainWindow::updateMulticastSong(string title, string artist, string album)
+{
+    ui->mCurrentSongLabel->setText(QString::fromStdString(title));
+    ui->mCurrentArtistLabel->setText(QString::fromStdString(artist));
+    ui->mCurrentAlbumLabel->setText(QString::fromStdString(album));
 }
 
 
@@ -270,6 +355,8 @@ void MainWindow::setTracklist(vector<string> *songs)
 {
     tracklist.clear();
     ui->uSongList->clear();
+    ui->uPlayList->clear();
+    ui->uDownloadList->clear();
 
     // Loop through and add each new song to the tracklist
     for (int i = 0; i < (int) songs->size(); i++)
@@ -278,158 +365,104 @@ void MainWindow::setTracklist(vector<string> *songs)
 
         // Update the tracklist GUI component
         ui->uSongList->addItem(QString::fromStdString(songs->at(i)));
+        ui->uPlayList->addItem("");
+        ui->uPlayList->item(tracklist.size() - 1)->setTextColor(playColor);
+        ui->uDownloadList->addItem("");
+        ui->uDownloadList->item(tracklist.size() - 1)->setTextColor(downloadColor);
+        
     }
-
+    
+    ui->uSongList->setCurrentRow(0);
 }
-
 
 
 void MainWindow::on_actionConnectDisconnect_triggered()
 {
-    if (ui->tabWidget->tabText(ui->tabWidget->currentIndex()) != "Config.")
+    int mode = ui->tabWidget->currentIndex();
+
+    //make sure we're in an appropriate tab
+    if (mode < 0 || mode > 2) return;
+
+    if (mode == 0 || mode == 1)
     {
-        if (!ui->actionConnectDisconnect->isChecked())
+        // Server-based
+        if (cData.connected)
         {
             disconnectIt();
         }
         else
         {
-            connectIt();
+            if (!connectIt()) return;
+    
+            cData.connected = true;
         }
     }
     else
     {
-        //if its the connect is being pressed while on the config tab
-        ui->actionConnectDisconnect->setChecked(false);
+        // Microphone
+        if (!cData.connected)
+        {
+            startMicrophone(&cData, micOutput);
+        }
+        else
+        {
+            // Disable microphone input and output
+            mic->stopSending();
+            micOutput->stopListening();
+            
+            cData.connected = false;
+        }
     }
 }
+
 
 //this is the button Ok on the config tab
 void MainWindow::on_cOKButton_clicked()
 {
-    IP = ui->cIPAddressText->text();
-    port = ui->cPortText->text().toInt();
     filePath = ui->cFilepathText->text();
+    
+    cData.ip = ui->cIPAddressText->text().toStdString();
+    cData.port = ui->cPortText->text().toInt();
 }
 
 //this is the button cancel on the config tab
 void MainWindow::on_cCancelButton_clicked()
 {
-    ui->cIPAddressText->setText(IP);
-    ui->cPortText->setText(QString::number(port));
+    ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
+    ui->cPortText->setText(QString::number(cData.port));
     ui->cFilepathText->setText(filePath);
-
 }
 
-void MainWindow::connectIt()
+bool MainWindow::connectIt()
 {
-    int mode = ui->tabWidget->currentIndex();
+    musicBuffer.clear();
 
-    //make sure connect does not work on the configuration
-    if (ui->tabWidget->tabText(mode) != "Config.")
-    {
-        //check if its unicast
-        if (cData.sMode == UNICAST && (mode == 0 || mode==1))
-        {
-            focusTab(1);
-
-            int n, ns, bytes_to_read;
-            int port, err;
-            SOCKET sd;
-            struct hostent	*hp;
-            struct sockaddr_in server;
-            char  *host, *bp, rbuf[BUFSIZE], sbuf[BUFSIZE], **pptr;
-            WSADATA WSAData;
-            WORD wVersionRequested;
-
-            host = "localhost";
-            port = cData.port;
-
-            wVersionRequested = MAKEWORD(2, 2);
-            err = WSAStartup(wVersionRequested, &WSAData);
-            if (err != 0) //No usable DLL
-            {
-                errorMessage("DLL not found!\n");
-                exit(1);
-            }
-
-            // Create the socket
-            if ((sd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-            {
-                errorMessage("Cannot create socket");
-                exit(1);
-            }
-
-            // Initialize and set up the address structure
-            memset((char *)&server, 0, sizeof(struct sockaddr_in));
-            server.sin_family = AF_INET;
-            server.sin_port = htons(port);
-            if ((hp = gethostbyname(host)) == NULL)
-            {
-                fprintf(stderr, "Unknown server address\n");
-                errorMessage("Unknown server address");
-                exit(1);
-            }
-
-            // Copy the server address
-            memcpy((char *)&server.sin_addr, hp->h_addr, hp->h_length);
-
-            // Connecting to the server
-            if (::connect(sd, (struct sockaddr *)&server, sizeof(server)) == -1)
-            {
-                fprintf(stderr, "Can't connect to server\n");
-                errorMessage("Can't connect to server");
-                return;//exit(1);
-            }
-            printf("Connected:    Server Name: %s\n", hp->h_name);
-            pptr = hp->h_addr_list;
-            printf("\t\tIP Address: %s\n", inet_ntoa(server.sin_addr));
-
-            for (;;)
-            {
-                printf("Transmiting:\n");
-                memset((char *)sbuf, 0, sizeof(sbuf));
-                gets(sbuf); // get user's text
-
-                // Transmit data through the socket
-                ns = send(sd, sbuf, BUFSIZE, 0);
-                printf("Receive:\n");
-                bp = rbuf;
-                bytes_to_read = BUFSIZE;
-/*
-                // client makes repeated calls to recv until no more data is expected to arrive.
-                while ((n = recv(sd, bp, bytes_to_read, 0)) < BUFSIZE)
-                {
-                    bp += n;
-                    bytes_to_read -= n;
-                    if (n == 0)
-                        break;
-                }
-                */
-                printf("%s\n\n", rbuf);
-            }
-
-            closesocket(sd);
-            WSACleanup();
-        }
-
-        //check if it is multicast
-        else if (cData.sMode == MULTICAST && (mode==0 || mode==1))
-        {
-            focusTab(0);
-        }
-        //if its neither multicast or unicast
-        else
-        {
-            focusTab(mode);
-        }
-    }
+    // Connect to the control channel
+    return connectControlChannel(&cData);
 }
 
 void MainWindow::disconnectIt()
 {
+    // Clear the buffer and free audio structures
+    musicBuffer.clear();
+    
+    waveOutPause(outputDevice);
+    waveOutClose(outputDevice);
+    
+    
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
+    }
+       
     //once disconnected all tabs are available again
     focusTab(-1);
+
+    disconnectControlChannel();
+
+    cData.connected = false;
+
+    updateMulticastSong("", "", "");
 }
 
 void MainWindow::focusTab(int tabNumber)
@@ -440,7 +473,7 @@ void MainWindow::focusTab(int tabNumber)
         ui->actionConnectDisconnect->setText("Connect");
         for (int n = 0; n < ui->tabWidget->count(); n++)
         {
-                ui->tabWidget->setTabEnabled(n, true);
+            ui->tabWidget->setTabEnabled(n, true);
         }
     }
     else
@@ -463,5 +496,248 @@ void MainWindow::errorMessage(QString message)
     if (ui->actionConnectDisconnect->isChecked())
     {
         focusTab(-1);
+    }
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: updateServerMode
+--
+-- DATE: March 28, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void updateServerMode(ServerMode sMode);
+--
+-- PARAMETERS:
+--      sMode - the mode of the server
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function updates the client mode based on the server.
+----------------------------------------------------------------------------------------------------------------------*/
+void MainWindow::updateServerMode(ServerMode sMode)
+{
+    cData.sMode = sMode;
+
+    //check if its unicast
+    if (cData.sMode == UNICAST)
+    {
+        focusTab(1);
+    }
+    //check if it is multicast
+    else if (cData.sMode == MULTICAST)
+    {
+        focusTab(0);
+        std::thread streamThread(connectMusic, &cData, &musicBuffer);
+        streamThread.detach();
+    }
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: outputAudio
+--
+-- DATE: March 30, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void outputAudio(MusicBuffer *buffer);
+--
+-- PARAMETERS:
+--      buffer - a pointer to the music buffer to stream from
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function uses WAVEOUT structures to play audio from a buffer.
+----------------------------------------------------------------------------------------------------------------------*/
+void outputAudio(MusicBuffer *buffer)
+{
+    WAVEFORMATEX format;
+    
+    // Set up the wave format
+    format.nSamplesPerSec = 44100;
+    format.wBitsPerSample = 16;
+    format.nChannels = 2;
+    format.cbSize = 0;
+    format.wFormatTag = WAVE_FORMAT_PCM;
+    format.nBlockAlign = format.nChannels * (format.wBitsPerSample / 8);
+    format.nAvgBytesPerSec = format.nSamplesPerSec * format.wBitsPerSample;
+
+    // Open the output device
+    if (waveOutOpen(&outputDevice, WAVE_MAPPER, &format, (DWORD) WaveCallback, NULL, CALLBACK_FUNCTION) != MMSYSERR_NOERROR)
+    {
+        cerr << "Failed to open output device." << endl;
+        exit(1);
+    }
+
+    // Prepare the wave headers
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        audioBuffers[i] = (LPWAVEHDR) malloc(sizeof(WAVEHDR));
+        ZeroMemory(audioBuffers[i], sizeof(WAVEHDR));
+
+        audioBuffers[i]->lpData = buffer->getBuffer();
+        audioBuffers[i]->dwBufferLength = BUFFER_SIZE;
+
+        // Create the header
+        if (waveOutPrepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        {
+            cerr << "Failed to create output header." << endl;
+            exit(1);
+        }
+    }
+
+    // Wait for the buffer to be ready to stream
+    while (!buffer->ready());
+    
+    for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+    {
+        waveOutWrite(outputDevice, audioBuffers[i], sizeof(WAVEHDR));
+    }
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: WaveCallback
+--
+-- DATE: March 24, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void CALLBACK AudioCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
+--
+-- PARAMETERS:
+--		hWave - a handle to the output device
+--		uMsg - the message sent to the callback
+--		dwUser - not used
+--		dw1 - the wave header used for audio output
+--		dw2 - not used
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This callback is used to properly stream audio without skipping.
+----------------------------------------------------------------------------------------------------------------------*/
+void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
+{
+    if ((cData.connected && cData.sMode == MULTICAST) || (!unicastSongDone && cData.sMode == UNICAST))
+    {
+        if (uMsg == WOM_DONE)
+        {
+            // Wait for the buffer to be ready to stream
+            while (!musicBuffer.ready());
+
+            if (waveOutWrite(outputDevice, (LPWAVEHDR) dw1, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+            {
+                cerr << "Failed to play audio." << endl;
+            }
+        }
+    }
+    else
+    {
+        free((LPWAVEHDR) dw1);
+    }
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendMicrophone
+--
+-- DATE: April 3, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void sendMicrophone(SOCKET micSocket);
+--
+-- PARAMETERS:
+--		micSocket - the socket to send data to
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function starts the microphone input.
+----------------------------------------------------------------------------------------------------------------------*/
+void sendMicrophone()
+{
+    // Open the mic input
+    mic->setData(&cData);
+    mic->startSending();
+    
+    // Wait until we are not connected
+    while (cData.connected);
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: endSong
+--
+-- DATE: April 5, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void endSong();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function's functionality depends on the server mode:
+--
+--     UNICAST - the current song has finished and can stop being played
+--     MULTICAST - the current song has finished and the client should clear the buffer
+--          in anticipation of the next one.
+----------------------------------------------------------------------------------------------------------------------*/
+void endSong()
+{
+    switch(cData.sMode)
+    {
+        case UNICAST:
+        {
+            std::cout << "Received end song" << endl;
+            unicastSongDone = true;
+            disconnectUnicast();
+        
+            //waveOutPause(outputDevice);
+            //waveOutClose(outputDevice);
+        
+            musicBuffer.clear();  
+            
+            for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+            {
+                waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
+            }        
+            
+            std::cout << "Received end song DONE" << endl;
+            break; 
+        }
+        
+        case MULTICAST:
+        {
+            break;         
+        }
     }
 }

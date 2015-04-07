@@ -2,13 +2,17 @@
 #define NETWORK_H_
 
 #include <string>
+#include <WinSock2.h>
+#include "MusicBuffer.h"
+#include "micoutput.h"
 
-/* The size of a data message */
-#define MESSAGE_SIZE 512
+/* The Multicast IP to connect to */
+#define MULTICAST_ADDR "234.5.6.7"
 
-/* The size of the circular sound buffer */
-#define BUFFER_SIZE (MESSAGE_SIZE * 10)
+/* Control socket data size */
+#define DATA_BUFSIZE 8192
 
+class MicOutput;
 
 /* An enum representing all possible server modes */
 enum ServerMode { NOTHING, UNICAST, MULTICAST };
@@ -22,13 +26,34 @@ struct ClientState
     bool connected;
     ServerMode sMode;
 };
-
 typedef struct ClientState ClientState;
 
+struct SocketInfo
+{
+    OVERLAPPED overlapped;
+    SOCKET socket;
+    CHAR buffer[DATA_BUFSIZE];
+    WSABUF dataBuf;
+};
 
-void streamMusic(ClientState *cData);
-void connectMusic(ClientState *cData);
+class MainWindow;
 
-void addToMusicBuffer(char *buffer, int bufferSize);
+namespace Network
+{
+    void setGUIHandle(MainWindow *window);
+}
+
+bool connectControlChannel(ClientState *cData);
+void disconnectControlChannel();
+bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
+void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer, bool *songDone);
+void startMicrophone(ClientState *cData, MicOutput *micOutput);
+void disconnectUnicast();
+
+namespace ControlSocket
+{
+    bool recv(SocketInfo* si);
+    bool send(SocketInfo* si, std::string msg, sockaddr_in* sin = nullptr);
+}
 
 #endif

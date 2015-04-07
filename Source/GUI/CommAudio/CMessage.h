@@ -7,7 +7,6 @@
 using std::vector;
 using std::string;
 
-
 /* All possible message types */
 enum MessageType { START_CONNECTION, END_CONNECTION, TRACK_LIST, PLAY_SONG,
                    SAVE_SONG, NOW_PLAYING, SONG_PIECE, END_SONG, MIC_PIECE };

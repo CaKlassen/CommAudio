@@ -11,7 +11,7 @@
 #define MESSAGE_SIZE 4096
 
 /* The size of the circular audio buffer */
-#define BUFFER_SIZE (MESSAGE_SIZE * 10)
+#define BUFFER_SIZE (MESSAGE_SIZE * 50)
 
 /*
 	This class is an encapsulation of a simple audio buffer. It is treated as a circular
