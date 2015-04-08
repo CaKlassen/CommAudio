@@ -53,7 +53,6 @@ MainWindow *mWin;
 string currentSong;
 int songLength;
 vector<string> tracklist;
-QString filePath = "C:/";
 
 MusicBuffer musicBuffer;
 HWAVEOUT outputDevice;
@@ -112,6 +111,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Set up the client data structure
     cData.ip = "127.0.0.1";
     cData.port = 9000;
+    cData.dlFilePath = "";
     cData.connected = false;
     cData.sMode = NOTHING;
     
@@ -120,7 +120,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
-    ui->cFilepathText->setText(filePath);
+    ui->cFilepathText->setText(QString::fromStdString(cData.dlFilePath));
 
     ui->uSongList->setFrameShape(QFrame::NoFrame);
     ui->uPlayList->setFrameShape(QFrame::NoFrame);
@@ -470,17 +470,21 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     else
     {
         // Microphone
-        if (!cData.connected)
+
+        if (cData.connected)
         {
-            startMicrophone(&cData, micOutput);
+            mic->stopSending();
+            micOutput->stopListening();
+
+            disconnectIt();
         }
         else
         {
-            // Disable microphone input and output
-            mic->stopSending();
-            micOutput->stopListening();
-            
-            cData.connected = false;
+            startMicrophone(&cData, micOutput);
+
+            focusTab(2);
+
+            cData.connected = true;
         }
     }
 }
@@ -508,10 +512,15 @@ void MainWindow::on_actionConnectDisconnect_triggered()
 --          Saves the settings once the ok/confirm btton is done
 ----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_cOKButton_clicked()
-{    
+{
     cData.ip = ui->cIPAddressText->text().toStdString();
     cData.port = ui->cPortText->text().toInt();
-    filePath = ui->cFilepathText->text();
+    cData.dlFilePath = ui->cFilepathText->text().toStdString();
+
+    QMessageBox::information(
+     this,
+     tr("Saved Settings"),
+     tr("Settings have been saved successfully") );
 }
 
 //this is the button cancel on the config tab
@@ -540,7 +549,7 @@ void MainWindow::on_cCancelButton_clicked()
 {
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
-    ui->cFilepathText->setText(filePath);
+    ui->cFilepathText->setText(QString::fromStdString(cData.dlFilePath));
 }
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -963,8 +972,8 @@ void downloadSong(string filename)
 {
     // Open the output file
     outputFile = new ofstream();
-    outputFile->open(filename, std::ios::binary | std::ios::out);
-    
+    outputFile->open(cData.dlFilePath + filename, std::ios::binary | std::ios::out);
+
     // Send the server a file request
     CMessage cMsg;
     cMsg.msgType = SAVE_SONG;

@@ -334,6 +334,8 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer, boo
     
     startAudioOutputThread.join(); // wait for the thread to finish
     cout << "Finished unicast stream" << endl;
+
+    closesocket(unicastStreamSocket);
 }
 
 
