@@ -470,17 +470,21 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     else
     {
         // Microphone
-        if (!cData.connected)
+
+        if (cData.connected)
         {
-            startMicrophone(&cData, micOutput);
+            mic->stopSending();
+            micOutput->stopListening();
+
+            disconnectIt();
         }
         else
         {
-            // Disable microphone input and output
-            mic->stopSending();
-            micOutput->stopListening();
-            
-            cData.connected = false;
+            startMicrophone(&cData, micOutput);
+
+            focusTab(2);
+
+            cData.connected = true;
         }
     }
 }
