@@ -194,6 +194,8 @@ void MainWindow::on_uPlayButton_clicked()
         QListWidgetItem *theItem = ui->uSongList->currentItem();
         QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
     
+        if (!theItem || !playingIcon) return;
+
         if (playingIcon->text() == "")
         {
             playingIcon->setText(playAscii);
@@ -265,11 +267,13 @@ void MainWindow::on_uDownloadButton_clicked()
     {
         //This selects the item and then just make it blue
         QListWidgetItem *theItem = ui->uSongList->currentItem();
-        QListWidgetItem *playingIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
+        QListWidgetItem *downloadIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
     
-        if (playingIcon->text() == "")
+        if (!theItem || !downloadIcon) return;
+
+        if (downloadIcon->text() == "")
         {
-            playingIcon->setText(downloadAscii);
+            downloadIcon->setText(downloadAscii);
     
             if (theItem->textColor() == playColor)
                 theItem->setTextColor(bothColor);
@@ -309,7 +313,6 @@ void MainWindow::on_uDownloadButton_clicked()
 }
 
 
-
 /* This is for the microphone button  */
 
 bool MicOn = true;
@@ -344,65 +347,6 @@ void MainWindow::on_micButton_clicked()
         mic->stopSending();
         ui->micButton->setText("microphone OFF");
     }
-}
-
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION:    on_mPlayButton_clicked()
---
--- DATE:        March 18, 2015
---
--- REVISIONS:   (Date and Description)
---
--- DESIGNER:    Jonathan Chu
---
--- PROGRAMMER:  Jonathan Chu
---
--- INTERFACE:   void MainWindow::on_mPlayButton_clicked()
---
--- PARAMETERS:
---
--- RETURNS:     void
---
--- NOTES:
---          Handles the play button on the multicast side of it
-----------------------------------------------------------------------------------------------------------------------*/
-void MainWindow::on_mPlayButton_clicked()
-{
-    QLabel *currentSong = ui->mCurrentSongLabel;
-
-    /* PopUp message */
-    QMessageBox pop;
-    pop.setText(currentSong->text() + " is playing");
-    pop.exec();
-}
-
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION:    on_mVolumeButton_clicked()
---
--- DATE:        March 18, 2015
---
--- REVISIONS:   (Date and Description)
---
--- DESIGNER:    Jonathan Chu
---
--- PROGRAMMER:  Jonathan Chu
---
--- INTERFACE:   void MainWindow::on_mVolumeButton_clicked()
---
--- PARAMETERS:
---
--- RETURNS:     void
---
--- NOTES:
---          Handles the volume once the volume button on the multicast is clicked
-----------------------------------------------------------------------------------------------------------------------*/
-void MainWindow::on_mVolumeButton_clicked()
-{
-
-    /* PopUp message */
-    QMessageBox pop;
-    pop.setText("Display the volume");
-    pop.exec();
 }
 
 
@@ -564,11 +508,10 @@ void MainWindow::on_actionConnectDisconnect_triggered()
 --          Saves the settings once the ok/confirm btton is done
 ----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_cOKButton_clicked()
-{
-    filePath = ui->cFilepathText->text();
-    
+{    
     cData.ip = ui->cIPAddressText->text().toStdString();
     cData.port = ui->cPortText->text().toInt();
+    filePath = ui->cFilepathText->text();
 }
 
 //this is the button cancel on the config tab
@@ -668,6 +611,7 @@ void MainWindow::disconnectIt()
     disconnectControlChannel();
 
     cData.connected = false;
+    unicastSongDone = true;
 
     updateMulticastSong("", "", "");
 }

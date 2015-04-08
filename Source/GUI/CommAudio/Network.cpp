@@ -94,7 +94,7 @@ bool connectControlChannel(ClientState *cData)
 
     host = (char *) cData->ip.c_str();
     port = cData->port;
-       
+
     // Create the socket
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {

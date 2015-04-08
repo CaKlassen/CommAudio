@@ -3,6 +3,7 @@
 
 #include <WinSock2.h>
 #include <vector>
+#include <deque>
 
 #define MULTICAST_ADDR "234.5.6.7"
 #define DATA_BUFSIZE 8192
@@ -30,10 +31,10 @@ struct SOCKET_INFORMATION
 
 struct Client
 {
-	SOCKET_INFORMATION socketinfo;
+	SOCKET_INFORMATION controlSI;
 	SOCKET unicastSocket;
-	sockaddr_in sin_udp;
-	sockaddr_in cInfo;
+	sockaddr_in sinTCP, sinUDP;
+	bool requestFinished;
 };
 
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port);
@@ -46,9 +47,10 @@ namespace Server
 	bool openListener(SOCKET& listenSocket, unsigned short int port);
 	bool acceptConnection(SOCKET listenSocket, ServerMode sMode);
 	Client* createClient();
+	std::deque<Client*>& getPendingUnicastClients();
 	bool recv(Client* c);
 	bool send(Client* c, std::string msg, sockaddr_in* sin = nullptr);
-	void disconnectClient(std::string ip);
+	void disconnectClient(Client* c);
 }
 
 void sendCurrentSongMulti(int song, AudioMetaData *metaData);
