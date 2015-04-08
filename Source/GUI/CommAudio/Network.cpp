@@ -137,6 +137,34 @@ void disconnectControlChannel()
     closesocket(controlSocket);
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: requestSaveSong
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: bool requestSaveSong(string controlString);
+--
+-- PARAMETERS:
+--      controlString - the control string to send to the server
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function sends the server a request to save a file.
+----------------------------------------------------------------------------------------------------------------------*/
+void requestSaveSong(string controlString)
+{
+    ControlSocket::send(serverCtrlSockInfo, controlString);
+}
+
+
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: connectMusic
 --

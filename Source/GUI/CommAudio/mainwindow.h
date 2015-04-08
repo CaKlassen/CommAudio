@@ -52,4 +52,8 @@ void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, D
 void sendMicrophone();
 void endSong();
 
+void downloadSong(std::string filename);
+void saveSongPiece(BYTE *data, int dataLen);
+void doneSavingSong();
+
 #endif // MAINWINDOW_H
