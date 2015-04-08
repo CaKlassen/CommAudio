@@ -32,10 +32,12 @@
 #include <errno.h>
 #include <QAudioDeviceInfo>
 #include <QAudioInput>
+#include <fstream>
 
 #include "Network.h"
 #include "MusicBuffer.h"
 #include "Mic.h"
+#include "ControlChannel.h"
 #include "micoutput.h"
 
 #define BUFSIZE 8192
@@ -44,6 +46,7 @@ using std::string;
 using std::vector;
 using std::cerr;
 using std::endl;
+using std::ofstream;
 
 // Client variables
 MainWindow *mWin;
@@ -62,6 +65,9 @@ MicOutput *micOutput;
 
 ClientState cData;
 
+// File saving variables
+ofstream *outputFile;
+bool doneSavingFile;
 
 //the play button
 int starting = 0;
@@ -115,6 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.sMode = NOTHING;
     
     unicastSongDone = true;
+    doneSavingFile = true;
 
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
@@ -223,40 +230,50 @@ void MainWindow::on_uPlayButton_clicked()
 
 void MainWindow::on_uDownloadButton_clicked()
 {
-    //This selects the item and then just make it blue
-    QListWidgetItem *theItem = ui->uSongList->currentItem();
-    QListWidgetItem *playingIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
-
-    if (playingIcon->text() == "")
+    if (doneSavingFile)
     {
-        playingIcon->setText(downloadAscii);
-
-        if (theItem->textColor() == playColor)
-            theItem->setTextColor(bothColor);
-        else
-            theItem->setTextColor(downloadColor);
-
-        currentMusic = ui->uSongList->currentRow();
-    }
-
-    //all items on the list will be reverted back to normal
-    if (true)
-    {
-        for(int i = 0; i < ui->uSongList->count(); ++i)
+        //This selects the item and then just make it blue
+        QListWidgetItem *theItem = ui->uSongList->currentItem();
+        QListWidgetItem *playingIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
+    
+        if (playingIcon->text() == "")
         {
-            QListWidgetItem *allItems = ui->uSongList->item(i);
-            QListWidgetItem *downloadingIcons = ui->uDownloadList->item(i);
-            if (downloadingIcons->text() == downloadAscii && currentMusic != i)
+            playingIcon->setText(downloadAscii);
+    
+            if (theItem->textColor() == playColor)
+                theItem->setTextColor(bothColor);
+            else
+                theItem->setTextColor(downloadColor);
+    
+            currentMusic = ui->uSongList->currentRow();
+        }
+    
+        //all items on the list will be reverted back to normal
+        if (true)
+        {
+            for(int i = 0; i < ui->uSongList->count(); ++i)
             {
-                downloadingIcons->setText("");
-
-
-                if (allItems->textColor() == bothColor)
-                    allItems->setTextColor(playColor);
-                else
-                    allItems->setTextColor(defaultColor);
+                QListWidgetItem *allItems = ui->uSongList->item(i);
+                QListWidgetItem *downloadingIcons = ui->uDownloadList->item(i);
+                if (downloadingIcons->text() == downloadAscii && currentMusic != i)
+                {
+                    downloadingIcons->setText("");
+    
+    
+                    if (allItems->textColor() == bothColor)
+                        allItems->setTextColor(playColor);
+                    else
+                        allItems->setTextColor(defaultColor);
+                }
             }
         }
+        
+        string song;
+        song = ui->uSongList->item(currentMusic)->text().toStdString();
+        
+        doneSavingFile = false;
+        std::thread saveThread(downloadSong, song);
+        saveThread.detach();
     }
 }
 
@@ -740,4 +757,135 @@ void endSong()
             break;         
         }
     }
+}
+
+int dataSize = 0;
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: downloadSong
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void downloadSong(string filename);
+--
+-- PARAMETERS:
+--      filename - the name of the file to save
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function encompasses the process of downloading a song from
+--     the server.
+----------------------------------------------------------------------------------------------------------------------*/
+void downloadSong(string filename)
+{
+    // Open the output file
+    outputFile = new ofstream();
+    outputFile->open(filename, std::ios::binary | std::ios::out);
+    
+    // Send the server a file request
+    CMessage cMsg;
+    cMsg.msgType = SAVE_SONG;
+    cMsg.msgData.emplace_back(filename);
+    
+    string controlString;
+    createControlString(&cMsg, &controlString);
+    requestSaveSong(controlString);
+    
+    // Open the receive listener
+    SOCKET listener = socket(AF_INET, SOCK_STREAM, 0);
+    
+    struct sockaddr_in listenerInfo;
+    listenerInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+    listenerInfo.sin_family = AF_INET;
+    listenerInfo.sin_port = htons(cData.port + 2);
+    
+    bind(listener, (struct sockaddr *) &listenerInfo, sizeof(listenerInfo));
+    
+    listen(listener, 5);
+    
+    // Receive data
+    struct sockaddr_in serverInfo;
+    
+    char buffer[SAVE_SIZE];
+    int serverLen = sizeof(serverInfo);
+    SOCKET server = accept(listener, (struct sockaddr *) &serverInfo, &serverLen);
+    
+    // Read data from the socket
+    int numRead;
+    while ((numRead = recv(server, buffer, SAVE_SIZE, 0)) == SAVE_SIZE)
+    {
+        // Save data 
+        saveSongPiece((BYTE *) buffer, numRead);
+    }
+    
+    // Close incoming sockets
+    closesocket(server);
+    closesocket(listener);
+    
+    // Close the output file
+    outputFile->close();
+    delete outputFile;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: saveSongPiece
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void saveSongPiece(BYTE *data, int dataLen);
+--
+-- PARAMETERS:
+--      data - an array of bytes to save
+--      dataLen - the length of the array
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function saves a piece of a song to the open file.
+----------------------------------------------------------------------------------------------------------------------*/
+void saveSongPiece(BYTE *data, int dataLen)
+{
+    dataSize += dataLen;
+    outputFile->write((char *) data, dataLen);
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: doneSavingSong
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void doneSavingSong();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function triggers the end of a song being saved.
+----------------------------------------------------------------------------------------------------------------------*/
+void doneSavingSong()
+{
+    std::cout << "DONE" << endl;
+    doneSavingFile = true;
 }

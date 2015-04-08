@@ -10,7 +10,7 @@
 #include "Network.h"
 
 #define MUSIC_LOCATION "music"
-
+#define SAVE_SIZE 512
 
 bool loadTracklist(std::vector<std::string> *tlist, std::string location);
 bool startMulticast();

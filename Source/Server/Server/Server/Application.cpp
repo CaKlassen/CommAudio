@@ -27,6 +27,7 @@
 #include <deque>
 #include <mutex>
 #include <WS2tcpip.h>
+#include <fstream>
 
 #include "dirent.h"
 
@@ -37,6 +38,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::ifstream;
 using std::mutex;
 using std::vector;
 using std::deque;
@@ -550,6 +552,63 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 	else
 	{
 		// send song via tcp control socket (download)
+		
+		// Create the output client
+		Client newC;
+		newC.cInfo = c->cInfo;
+		newC.cInfo.sin_port = htons(port + 2);
+		newC.socketinfo.socket = socket(AF_INET, SOCK_STREAM, 0);
+		
+		// Connect to the client
+		if (connect(newC.socketinfo.socket, (struct sockaddr *) &newC.cInfo, sizeof(newC.cInfo)) == -1)
+		{
+			cerr << "Failed to connect to client for saving file." << endl;
+		}
+
+		ifstream iFile;
+		stringstream ss;
+		ss << MUSIC_LOCATION << "/" << song;
+		iFile.open(ss.str(), std::ios::binary | std::ios::in);
+
+		cout << "Opening file \"" << ss.str() << "\" to send." << endl;
+
+		// If we still have the file
+		if (iFile.is_open())
+		{
+			char buffer[SAVE_SIZE + 1];
+			ZeroMemory(buffer, SAVE_SIZE + 1);
+			string controlString;
+
+			cout << "Sending data..." << endl;
+
+			while (!iFile.eof())
+			{
+				ZeroMemory(buffer, SAVE_SIZE + 1);
+				iFile.read(buffer, SAVE_SIZE);
+				
+				// Send the data
+				send(newC.socketinfo.socket, buffer, SAVE_SIZE, 0);
+			}
+		}
+		else
+		{
+			cerr << "Failed to open download file." << endl;
+		}
+
+		// Close the socket to the client
+		closesocket(newC.socketinfo.socket);
+		iFile.close();
+
+		// Send the "finished" message
+		CMessage cMsg;
+		cMsg.msgType = SAVE_SONG;
+		
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+
+		cout << "Finished sending file data." << endl;
 	}
 }
 
