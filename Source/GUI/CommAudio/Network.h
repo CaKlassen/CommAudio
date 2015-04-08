@@ -26,6 +26,7 @@ struct ClientState
 {
     std::string ip;
     int port;
+    std::string dlFilePath;
     bool connected;
     ServerMode sMode;
 };

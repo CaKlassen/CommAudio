@@ -533,7 +533,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		libvlc_media_player_release(mp);
 
 		// Remove the serviced client from the list
-		Server::getPendingUnicastClients().pop_front();
+		if (!Server::getPendingUnicastClients().empty()) Server::getPendingUnicastClients().pop_front();
 
 		// Tell the client that the song is done
 		CMessage cMsg;
