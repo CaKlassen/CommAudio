@@ -400,9 +400,9 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Melvin Loho
 --
 -- INTERFACE: void disconnectClient(int socket);
 --

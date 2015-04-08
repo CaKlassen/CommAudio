@@ -32,10 +32,12 @@
 #include <errno.h>
 #include <QAudioDeviceInfo>
 #include <QAudioInput>
+#include <fstream>
 
 #include "Network.h"
 #include "MusicBuffer.h"
 #include "Mic.h"
+#include "ControlChannel.h"
 #include "micoutput.h"
 
 #define BUFSIZE 8192
@@ -44,6 +46,7 @@ using std::string;
 using std::vector;
 using std::cerr;
 using std::endl;
+using std::ofstream;
 
 // Client variables
 MainWindow *mWin;
@@ -62,10 +65,14 @@ MicOutput *micOutput;
 
 ClientState cData;
 
+// File saving variables
+ofstream *outputFile;
+bool doneSavingFile;
 
 //the play button
 int starting = 0;
 int currentMusic = -1;
+bool unicastSongDone;
 
 //the characters to be shown when the song is being downloaded or played
 QString downloadAscii = "D";
@@ -79,25 +86,20 @@ QColor defaultColor = Qt::black;
 
 
 /*------------------------------------------------------------------------------------------------------------------
--- FUNCTION:
+-- FUNCTION:    MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow)
 --
 -- DATE:        March 18, 2015
 --
 -- REVISIONS:   (Date and Description)
 --
--- DESIGNER:
+-- DESIGNER:    Jonathan Chu
 --
--- PROGRAMMER:
+-- PROGRAMMER:  Jonathan Chu
 --
--- INTERFACE:
---
--- PARAMETERS:
---
---
--- RETURNS:     void
+-- INTERFACE:   MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow)
 --
 -- NOTES:
---
+--          The constructor to create the main window
 ----------------------------------------------------------------------------------------------------------------------*/
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -112,6 +114,9 @@ MainWindow::MainWindow(QWidget *parent) :
     cData.port = 9000;
     cData.connected = false;
     cData.sMode = NOTHING;
+    
+    unicastSongDone = true;
+    doneSavingFile = true;
 
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
     ui->cPortText->setText(QString::number(cData.port));
@@ -130,6 +135,23 @@ MainWindow::MainWindow(QWidget *parent) :
     micOutput = new MicOutput();
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    ~MainWindow()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   MainWindow::~MainWindow()
+--
+-- NOTES:
+--          The destructor for the main window
+----------------------------------------------------------------------------------------------------------------------*/
 MainWindow::~MainWindow()
 {
     WSACleanup();
@@ -166,94 +188,127 @@ MainWindow::~MainWindow()
 ----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_uPlayButton_clicked()
 {
-    //This selects the item and then just make it blue
-    QListWidgetItem *theItem = ui->uSongList->currentItem();
-    QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
-
-    if (!theItem || !playingIcon) return;
-
-    if (playingIcon->text() == "")
+    if (unicastSongDone)
     {
-        playingIcon->setText(playAscii);
+        //This selects the item and then just make it blue
+        QListWidgetItem *theItem = ui->uSongList->currentItem();
+        QListWidgetItem *playingIcon = ui->uPlayList->item(ui->uSongList->currentRow());
+    
+        if (!theItem || !playingIcon) return;
 
-        if (theItem->textColor() == downloadColor)
-            theItem->setTextColor(bothColor);
-        else
-            theItem->setTextColor(playColor);
-
-
-        currentMusic = ui->uSongList->currentRow();
-    }
-
-    //all items on the list will be reverted back to normal
-    if (true)
-    {
-        for(int i = 0; i < ui->uSongList->count(); ++i)
+        if (playingIcon->text() == "")
         {
-            QListWidgetItem *allItems = ui->uSongList->item(i);
-            QListWidgetItem *playingIcons = ui->uPlayList->item(i);
-            if (playingIcons->text() == playAscii && currentMusic != i)
+            playingIcon->setText(playAscii);
+    
+            if (theItem->textColor() == downloadColor)
+                theItem->setTextColor(bothColor);
+            else
+                theItem->setTextColor(playColor);
+    
+    
+            currentMusic = ui->uSongList->currentRow();
+        }
+    
+        //all items on the list will be reverted back to normal
+        if (true)
+        {
+            for(int i = 0; i < ui->uSongList->count(); ++i)
             {
-                playingIcons->setText("");
-
-                if (allItems->textColor() == bothColor)
-                    allItems->setTextColor(downloadColor);
-                else
-                    allItems->setTextColor(defaultColor);
+                QListWidgetItem *allItems = ui->uSongList->item(i);
+                QListWidgetItem *playingIcons = ui->uPlayList->item(i);
+                if (playingIcons->text() == playAscii && currentMusic != i)
+                {
+                    playingIcons->setText("");
+    
+                    if (allItems->textColor() == bothColor)
+                        allItems->setTextColor(downloadColor);
+                    else
+                        allItems->setTextColor(defaultColor);
+                }
             }
         }
-    }
-
-    // Start receiving audio
-    string song;
-    song = ui->uSongList->item(currentMusic)->text().toStdString();
-    std::thread streamThread(streamMusic, &cData, song, &musicBuffer);
-    streamThread.detach();
     
+        // Start receiving audio
+        string song;
+        song = ui->uSongList->item(currentMusic)->text().toStdString();
+        
+        unicastSongDone = false;
+        std::thread streamThread(streamMusic, &cData, song, &musicBuffer, &unicastSongDone);
+        streamThread.detach();
+    }
     //starting = starting + 5; //once it reaches 100% it will stay as 100% even if "starting" is past 100
     //ui->uMusicProgressSlider->setValue(starting); // this is 50 as in 0%
 }
 
 //the download button
-
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    on_uDownloadButton_clicked()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::on_uDownloadButton_clicked()
+--
+-- PARAMETERS:  none
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Manages the action to be executed when the download button is pressed
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_uDownloadButton_clicked()
 {
-    //This selects the item and then just make it blue
-    QListWidgetItem *theItem = ui->uSongList->currentItem();
-    QListWidgetItem *downloadIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
-
-    if (!theItem || !downloadIcon) return;
-
-    if (downloadIcon->text() == "")
+    if (doneSavingFile)
     {
-        downloadIcon->setText(downloadAscii);
+        //This selects the item and then just make it blue
+        QListWidgetItem *theItem = ui->uSongList->currentItem();
+        QListWidgetItem *downloadIcon = ui->uDownloadList->item(ui->uSongList->currentRow());
+    
+        if (!theItem || !downloadIcon) return;
 
-        if (theItem->textColor() == playColor)
-            theItem->setTextColor(bothColor);
-        else
-            theItem->setTextColor(downloadColor);
-
-        currentMusic = ui->uSongList->currentRow();
-    }
-
-    //all items on the list will be reverted back to normal
-    if (true)
-    {
-        for(int i = 0; i < ui->uSongList->count(); ++i)
+        if (downloadIcon->text() == "")
         {
-            QListWidgetItem *allItems = ui->uSongList->item(i);
-            QListWidgetItem *downloadingIcons = ui->uDownloadList->item(i);
-            if (downloadingIcons->text() == downloadAscii && currentMusic != i)
+            downloadIcon->setText(downloadAscii);
+    
+            if (theItem->textColor() == playColor)
+                theItem->setTextColor(bothColor);
+            else
+                theItem->setTextColor(downloadColor);
+    
+            currentMusic = ui->uSongList->currentRow();
+        }
+    
+        //all items on the list will be reverted back to normal
+        if (true)
+        {
+            for(int i = 0; i < ui->uSongList->count(); ++i)
             {
-                downloadingIcons->setText("");
-
-
-                if (allItems->textColor() == bothColor)
-                    allItems->setTextColor(playColor);
-                else
-                    allItems->setTextColor(defaultColor);
+                QListWidgetItem *allItems = ui->uSongList->item(i);
+                QListWidgetItem *downloadingIcons = ui->uDownloadList->item(i);
+                if (downloadingIcons->text() == downloadAscii && currentMusic != i)
+                {
+                    downloadingIcons->setText("");
+    
+    
+                    if (allItems->textColor() == bothColor)
+                        allItems->setTextColor(playColor);
+                    else
+                        allItems->setTextColor(defaultColor);
+                }
             }
         }
+        
+        string song;
+        song = ui->uSongList->item(currentMusic)->text().toStdString();
+        
+        doneSavingFile = false;
+        std::thread saveThread(downloadSong, song);
+        saveThread.detach();
     }
 }
 
@@ -261,7 +316,26 @@ void MainWindow::on_uDownloadButton_clicked()
 /* This is for the microphone button  */
 
 bool MicOn = true;
-
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    on_micButton_clicked()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::on_micButton_clicked()
+--
+-- PARAMETERS:
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Handles the action for the microphone when the button is pressed
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_micButton_clicked()
 {
     MicOn = !MicOn;
@@ -352,7 +426,26 @@ void MainWindow::setTracklist(vector<string> *songs)
     ui->uSongList->setCurrentRow(0);
 }
 
-
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    on_actionConnectDisconnect_triggered()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::on_actionConnectDisconnect_triggered()
+--
+-- PARAMETERS:
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Handles the connect/disconnect buttons on the menu
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_actionConnectDisconnect_triggered()
 {
     int mode = ui->tabWidget->currentIndex();
@@ -394,15 +487,55 @@ void MainWindow::on_actionConnectDisconnect_triggered()
 
 
 //this is the button Ok on the config tab
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    on_cOKButton_clicked()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::on_cOKButton_clicked()
+--
+-- PARAMETERS:
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Saves the settings once the ok/confirm btton is done
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_cOKButton_clicked()
-{
-    filePath = ui->cFilepathText->text();
-    
+{    
     cData.ip = ui->cIPAddressText->text().toStdString();
     cData.port = ui->cPortText->text().toInt();
+    filePath = ui->cFilepathText->text();
 }
 
 //this is the button cancel on the config tab
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    on_cCancelButton_clicked()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::on_cCancelButton_clicked()
+--
+-- PARAMETERS:
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Reverses the settings to previous settings when pressing cancel button
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_cCancelButton_clicked()
 {
     ui->cIPAddressText->setText(QString::fromStdString(cData.ip));
@@ -410,6 +543,26 @@ void MainWindow::on_cCancelButton_clicked()
     ui->cFilepathText->setText(filePath);
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    connectIt()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   bool MainWindow::connectIt()
+--
+-- PARAMETERS:
+--
+-- RETURNS:     bool
+--
+-- NOTES:
+--          Creates a connection
+----------------------------------------------------------------------------------------------------------------------*/
 bool MainWindow::connectIt()
 {
     musicBuffer.clear();
@@ -418,6 +571,26 @@ bool MainWindow::connectIt()
     return connectControlChannel(&cData);
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    disconnectIt()
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::disconnectIt()
+--
+-- PARAMETERS:
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Disconnects from a previous established connection
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::disconnectIt()
 {
     // Clear the buffer and free audio structures
@@ -438,10 +611,32 @@ void MainWindow::disconnectIt()
     disconnectControlChannel();
 
     cData.connected = false;
+    unicastSongDone = true;
 
     updateMulticastSong("", "", "");
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    focusTab(int tabNumber)
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::focusTab(int tabNumber)
+--
+-- PARAMETERS:
+--              tabNumber: the tab that is to be focused
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Makes the focus turn to the selected tab.
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::focusTab(int tabNumber)
 {
     //there is no focus on a specific tab, so all are enabled
@@ -464,6 +659,27 @@ void MainWindow::focusTab(int tabNumber)
     }
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    errorMessage(QString message)
+--
+-- DATE:        March 18, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--
+-- INTERFACE:   void MainWindow::errorMessage(QString message)
+--
+-- PARAMETERS:
+--              message  the message that will be displayed on the qmessagebox
+--
+-- RETURNS:     void
+--
+-- NOTES:
+--          Creates a pop up window with a error message.
+----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::errorMessage(QString message)
 {
     QMessageBox::warning(
@@ -612,7 +828,7 @@ void outputAudio(MusicBuffer *buffer)
 ----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-    if (cData.connected)
+    if ((cData.connected && cData.sMode == MULTICAST) || (!unicastSongDone && cData.sMode == UNICAST))
     {
         if (uMsg == WOM_DONE)
         {
@@ -664,3 +880,188 @@ void sendMicrophone()
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: endSong
+--
+-- DATE: April 5, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void endSong();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function's functionality depends on the server mode:
+--
+--     UNICAST - the current song has finished and can stop being played
+--     MULTICAST - the current song has finished and the client should clear the buffer
+--          in anticipation of the next one.
+----------------------------------------------------------------------------------------------------------------------*/
+void endSong()
+{
+    switch(cData.sMode)
+    {
+        case UNICAST:
+        {
+            std::cout << "Received end song" << endl;
+            unicastSongDone = true;
+            disconnectUnicast();
+        
+            //waveOutPause(outputDevice);
+            //waveOutClose(outputDevice);
+        
+            musicBuffer.clear();  
+            
+            for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
+            {
+                waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
+            }        
+            
+            std::cout << "Received end song DONE" << endl;
+            break; 
+        }
+        
+        case MULTICAST:
+        {
+            break;         
+        }
+    }
+}
+
+int dataSize = 0;
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: downloadSong
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void downloadSong(string filename);
+--
+-- PARAMETERS:
+--      filename - the name of the file to save
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function encompasses the process of downloading a song from
+--     the server.
+----------------------------------------------------------------------------------------------------------------------*/
+void downloadSong(string filename)
+{
+    // Open the output file
+    outputFile = new ofstream();
+    outputFile->open(filename, std::ios::binary | std::ios::out);
+    
+    // Send the server a file request
+    CMessage cMsg;
+    cMsg.msgType = SAVE_SONG;
+    cMsg.msgData.emplace_back(filename);
+    
+    string controlString;
+    createControlString(&cMsg, &controlString);
+    requestSaveSong(controlString);
+    
+    // Open the receive listener
+    SOCKET listener = socket(AF_INET, SOCK_STREAM, 0);
+    
+    struct sockaddr_in listenerInfo;
+    listenerInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+    listenerInfo.sin_family = AF_INET;
+    listenerInfo.sin_port = htons(cData.port + 2);
+    
+    bind(listener, (struct sockaddr *) &listenerInfo, sizeof(listenerInfo));
+    
+    listen(listener, 5);
+    
+    // Receive data
+    struct sockaddr_in serverInfo;
+    
+    char buffer[SAVE_SIZE];
+    int serverLen = sizeof(serverInfo);
+    SOCKET server = accept(listener, (struct sockaddr *) &serverInfo, &serverLen);
+    
+    // Read data from the socket
+    int numRead;
+    while ((numRead = recv(server, buffer, SAVE_SIZE, 0)) == SAVE_SIZE)
+    {
+        // Save data 
+        saveSongPiece((BYTE *) buffer, numRead);
+    }
+    
+    // Close incoming sockets
+    closesocket(server);
+    closesocket(listener);
+    
+    // Close the output file
+    outputFile->close();
+    delete outputFile;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: saveSongPiece
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void saveSongPiece(BYTE *data, int dataLen);
+--
+-- PARAMETERS:
+--      data - an array of bytes to save
+--      dataLen - the length of the array
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function saves a piece of a song to the open file.
+----------------------------------------------------------------------------------------------------------------------*/
+void saveSongPiece(BYTE *data, int dataLen)
+{
+    dataSize += dataLen;
+    outputFile->write((char *) data, dataLen);
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: doneSavingSong
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void doneSavingSong();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function triggers the end of a song being saved.
+----------------------------------------------------------------------------------------------------------------------*/
+void doneSavingSong()
+{
+    std::cout << "DONE" << endl;
+    doneSavingFile = true;
+}

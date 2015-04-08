@@ -94,7 +94,7 @@ bool connectControlChannel(ClientState *cData)
 
     host = (char *) cData->ip.c_str();
     port = cData->port;
-       
+
     // Create the socket
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -136,6 +136,34 @@ void disconnectControlChannel()
 {
     closesocket(controlSocket);
 }
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: requestSaveSong
+--
+-- DATE: April 7, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: bool requestSaveSong(string controlString);
+--
+-- PARAMETERS:
+--      controlString - the control string to send to the server
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function sends the server a request to save a file.
+----------------------------------------------------------------------------------------------------------------------*/
+void requestSaveSong(string controlString)
+{
+    ControlSocket::send(serverCtrlSockInfo, controlString);
+}
+
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: connectMusic
@@ -251,7 +279,7 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
 --     This function begins listening for a Unicast music stream from the
 --     server and plays it.
 ----------------------------------------------------------------------------------------------------------------------*/
-void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer)
+void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer, bool *songDone)
 {
     // Send the server a request
     CMessage cMsg;
@@ -288,18 +316,16 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer)
     std::thread startAudioOutputThread(outputAudio, musicBuffer);
     
     // While we are still connected
-    while(cData->connected)
+    while(!(*songDone) && cData->connected)
     {
         int serverInfoSize = sizeof(unicastServerInfo);
         int numReceived = 0;
         char tempBuffer[MESSAGE_SIZE];
         
-        if ((numReceived = recvfrom(unicastStreamSocket, tempBuffer, MESSAGE_SIZE, 0,(struct sockaddr *) &unicastServerInfo, &serverInfoSize)) < 0)
+        if (!(*songDone) && (numReceived = recvfrom(unicastStreamSocket, tempBuffer, MESSAGE_SIZE, 0,(struct sockaddr *) &unicastServerInfo, &serverInfoSize)) < 0)
         {
             // The socket data failed to be read
             cerr << "Failed to read from unicast socket." << endl;
-            WSACleanup();
-            exit(1);
         }
                 
         // Add the data to the buffer
@@ -307,9 +333,35 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer)
     }
     
     startAudioOutputThread.join(); // wait for the thread to finish
+    cout << "Finished unicast stream" << endl;
+}
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: disconnectUnicast
+--
+-- DATE: April 6, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void disconnectUnicast();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function closes the unicast socket once a song has been streamed.
+----------------------------------------------------------------------------------------------------------------------*/
+void disconnectUnicast()
+{
     closesocket(unicastStreamSocket);
 }
+
 
 bool ControlSocket::recv(SocketInfo* si)
 {

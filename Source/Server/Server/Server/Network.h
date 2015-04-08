@@ -34,6 +34,7 @@ struct Client
 	SOCKET_INFORMATION controlSI;
 	SOCKET unicastSocket;
 	sockaddr_in sinTCP, sinUDP;
+	bool requestFinished;
 };
 
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port);

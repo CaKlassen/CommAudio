@@ -46,5 +46,10 @@ private:
 void outputAudio(MusicBuffer *buffer);
 void CALLBACK WaveCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
 void sendMicrophone();
+void endSong();
+
+void downloadSong(std::string filename);
+void saveSongPiece(BYTE *data, int dataLen);
+void doneSavingSong();
 
 #endif // MAINWINDOW_H

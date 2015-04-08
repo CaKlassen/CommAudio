@@ -24,7 +24,10 @@
 #include <cstdlib>
 #include <map>
 #include <thread>
+#include <deque>
+#include <mutex>
 #include <WS2tcpip.h>
+#include <fstream>
 
 #include "dirent.h"
 
@@ -35,6 +38,8 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::ifstream;
+using std::mutex;
 using std::vector;
 using std::deque;
 using std::map;
@@ -47,6 +52,7 @@ SOCKET listeningSocket;
 int port;
 vector<string> tracklist;
 bool done = false;
+mutex unicastMutex;
 
 // Audio variable
 libvlc_instance_t *inst;
@@ -503,29 +509,104 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		c->unicastSocket = socket(PF_INET, SOCK_DGRAM, 0);
 		Server::getPendingUnicastClients().push_back(c);
 
-		// Start playing the song
-		mediaPlayer = libvlc_media_player_new_from_media(media);
-		libvlc_media_release(media);
-		libvlc_media_player_play(mediaPlayer);
+		// Lock the unicast stream mutex
+		unicastMutex.lock();
 
-		while (!libvlc_media_player_is_playing(mediaPlayer))
+		// Start playing the song
+		libvlc_media_player_t *mp = libvlc_media_player_new_from_media(media);
+		libvlc_media_release(media);
+		libvlc_media_player_play(mp);
+
+		while (!libvlc_media_player_is_playing(mp))
 		{
 			// Wait for the song to start
 		}
 
 		// While we are not done and there is data left to send
-		while (!done && libvlc_media_player_is_playing(mediaPlayer))
+		while (!done && libvlc_media_player_is_playing(mp))
 		{
 			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
 
 			Sleep(1000);
 		}
 
-		libvlc_media_player_release(mediaPlayer);
+		libvlc_media_player_release(mp);
+
+		// Remove the serviced client from the list
+		Server::getPendingUnicastClients().pop_front();
+
+		// Tell the client that the song is done
+		CMessage cMsg;
+		cMsg.msgType = END_SONG;
+
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+
+		// Unlock the stream mutex
+		unicastMutex.unlock();
 	}
 	else
 	{
 		// send song via tcp control socket (download)
+
+		// Create the output client
+		Client newC;
+		newC.sinTCP = c->sinTCP;
+		newC.sinTCP.sin_port = htons(port + 2);
+		newC.controlSI.socket = socket(AF_INET, SOCK_STREAM, 0);
+
+		// Connect to the client
+		if (connect(newC.controlSI.socket, (struct sockaddr *) &newC.sinTCP, sizeof(newC.sinTCP)) == -1)
+		{
+			cerr << "Failed to connect to client for saving file." << endl;
+		}
+
+		ifstream iFile;
+		stringstream ss;
+		ss << MUSIC_LOCATION << "/" << song;
+		iFile.open(ss.str(), std::ios::binary | std::ios::in);
+
+		cout << "Opening file \"" << ss.str() << "\" to send." << endl;
+
+		// If we still have the file
+		if (iFile.is_open())
+		{
+			char buffer[SAVE_SIZE + 1];
+			ZeroMemory(buffer, SAVE_SIZE + 1);
+			string controlString;
+
+			cout << "Sending data..." << endl;
+
+			while (!iFile.eof())
+			{
+				ZeroMemory(buffer, SAVE_SIZE + 1);
+				iFile.read(buffer, SAVE_SIZE);
+
+				// Send the data
+				send(newC.controlSI.socket, buffer, SAVE_SIZE, 0);
+			}
+		}
+		else
+		{
+			cerr << "Failed to open download file." << endl;
+		}
+
+		// Close the socket to the client
+		closesocket(newC.controlSI.socket);
+		iFile.close();
+
+		// Send the "finished" message
+		CMessage cMsg;
+		cMsg.msgType = SAVE_SONG;
+
+		string controlString;
+		createControlString(cMsg, controlString);
+
+		Server::send(c, controlString);
+
+		cout << "Finished sending file data." << endl;
 	}
 }
 
@@ -690,12 +771,8 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 		{
 			if (!Server::getPendingUnicastClients().empty())
 			{
-				Client* nextClient = Server::getPendingUnicastClients().front();
-				Server::getPendingUnicastClients().pop_front();
-
+				Client *nextClient = Server::getPendingUnicastClients().front();
 				sendto(nextClient->unicastSocket, buffer, MESSAGE_SIZE, 0, (struct sockaddr *) &nextClient->sinUDP, sizeof(nextClient->sinUDP));
-
-				Server::getPendingUnicastClients().push_back(nextClient);
 			}
 		}
 

@@ -180,12 +180,21 @@ void handleControlMessage(CMessage *cMsg)
         case SONG_PIECE:
         {
             // A piece of a song to save to a file
+            saveSongPiece((BYTE *) cMsg->msgData[0].c_str(), strlen(cMsg->msgData[0].c_str()));
+            break;
+        }
+        
+        case SAVE_SONG:
+        {
+            // The song requested to be saved has completed sending
+            doneSavingSong();
             break;
         }
 
         case END_SONG:
         {
             // The currently playing song has ended
+            endSong();
             break;
         }
 	}
