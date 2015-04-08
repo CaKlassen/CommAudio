@@ -12,6 +12,9 @@
 /* Control socket data size */
 #define DATA_BUFSIZE 8192
 
+/* The size of a packet for file saving */
+#define SAVE_SIZE 512
+
 class MicOutput;
 
 /* An enum representing all possible server modes */
@@ -49,6 +52,7 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
 void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer, bool *songDone);
 void startMicrophone(ClientState *cData, MicOutput *micOutput);
 void disconnectUnicast();
+void requestSaveSong(std::string controlString);
 
 namespace ControlSocket
 {
