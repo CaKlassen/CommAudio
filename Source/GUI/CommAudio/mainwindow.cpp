@@ -59,6 +59,7 @@ HWAVEOUT outputDevice;
 LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
 // Microphone variables
+bool MicOn = true;
 Mic *mic;
 MicOutput *micOutput;
 
@@ -314,8 +315,6 @@ void MainWindow::on_uDownloadButton_clicked()
 
 
 /* This is for the microphone button  */
-
-bool MicOn = true;
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION:    on_micButton_clicked()
 --
@@ -338,6 +337,8 @@ bool MicOn = true;
 ----------------------------------------------------------------------------------------------------------------------*/
 void MainWindow::on_micButton_clicked()
 {
+    if (!cData.connected) return;
+
     MicOn = !MicOn;
     if (MicOn) {
         mic->startSending();
@@ -477,6 +478,8 @@ void MainWindow::on_actionConnectDisconnect_triggered()
             micOutput->stopListening();
 
             disconnectIt();
+
+            ui->micButton->setText("microphone ON");
         }
         else
         {
