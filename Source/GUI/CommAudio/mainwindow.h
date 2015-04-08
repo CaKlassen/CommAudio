@@ -32,10 +32,6 @@ private slots:
 
     void on_micButton_clicked();
 
-    void on_mPlayButton_clicked();
-
-    void on_mVolumeButton_clicked();
-
     void on_actionConnectDisconnect_triggered();
 
     void on_cOKButton_clicked();

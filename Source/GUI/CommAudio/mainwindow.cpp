@@ -258,7 +258,6 @@ void MainWindow::on_uDownloadButton_clicked()
 }
 
 
-
 /* This is for the microphone button  */
 
 bool MicOn = true;
@@ -274,25 +273,6 @@ void MainWindow::on_micButton_clicked()
         mic->stopSending();
         ui->micButton->setText("microphone OFF");
     }
-}
-
-void MainWindow::on_mPlayButton_clicked()
-{
-    QLabel *currentSong = ui->mCurrentSongLabel;
-
-    /* PopUp message */
-    QMessageBox pop;
-    pop.setText(currentSong->text() + " is playing");
-    pop.exec();
-}
-
-void MainWindow::on_mVolumeButton_clicked()
-{
-
-    /* PopUp message */
-    QMessageBox pop;
-    pop.setText("Display the volume");
-    pop.exec();
 }
 
 
