@@ -69,8 +69,6 @@ struct ip_mreq multicastInterface;
 
 void threadCtrlSocketLoop()
 {
-	cout << "Listening... " << endl;
-
 	while (Server::isAlive())
 	{
 		Server::acceptConnection(listeningSocket, sMode);
@@ -339,6 +337,8 @@ bool startMulticast()
 	multicastDestInfo.sin_family = AF_INET;
 	multicastDestInfo.sin_port = htons((port - 1));
 
+	cout << "Starting multicast." << endl;
+
 	// Play music in a loop
 	if (!playMulticast())
 	{
@@ -390,7 +390,7 @@ bool playMulticast()
 		freeMetaData(&metaData);
 		if (getMetaData(&metaData, media))
 		{
-			cout << "Meta Data: " << metaData.artist << ", " << metaData.title << ", " << metaData.album << endl;
+			cout << "Meta Data: " << endl << metaData.artist << ", " << metaData.title << ", " << metaData.album << endl;
 		}
 
 		// Play the audio
@@ -407,15 +407,8 @@ bool playMulticast()
 			// Wait for the song to start
 		}
 
-		cout << "Multicasting..." << endl;
-
 		// While we are not done and there is data left to send
-		while (!done && libvlc_media_player_is_playing(mediaPlayer))
-		{
-			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
-
-			Sleep(1000);
-		}
+		while (!done && libvlc_media_player_is_playing(mediaPlayer));
 
 		libvlc_media_player_release(mediaPlayer);
 
@@ -496,7 +489,7 @@ void saveUnicast(Client *c, string song)
 void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
 	// loop until all of the song is sent
-	cout << "Unicasting..." << endl;
+	cout << "Starting unicast." << endl;
 
 	if (!usingTCP)
 	{
@@ -524,13 +517,8 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 			// Wait for the song to start
 		}
 
-		// While there is data left to send and the client is still connected
-		while (libvlc_media_player_is_playing(mp) && c->controlSI.socket == goodSocket)
-		{
-			cout << "Sending data in " << MESSAGE_SIZE << " byte messages..." << endl;
-
-			Sleep(1000);
-		}
+		// While we are not done and there is data left to send
+		while (!done && libvlc_media_player_is_playing(mp) && c->controlSI.socket == goodSocket);
 
 		libvlc_media_player_release(mp);
 
@@ -580,8 +568,6 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 			char buffer[SAVE_SIZE + 1];
 			ZeroMemory(buffer, SAVE_SIZE + 1);
 			string controlString;
-
-			cout << "Sending data..." << endl;
 
 			while (!iFile.eof() && c->controlSI.socket == goodSocket)
 			{
