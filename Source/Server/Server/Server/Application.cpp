@@ -24,9 +24,9 @@
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Chris Klassen, Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Chris Klassen, Melvin Loho
 --
 -- NOTES:
 --     This file contains all functions related to starting, closing and running the server.
@@ -511,21 +511,22 @@ bool playMulticast()
 
 
 /*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: sendUnicast
+-- FUNCTION: playUnicast
 --
 -- DATE: March 14, 2015
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: void sendUnicast(string ip);
+-- INTERFACE: void playUnicast(Client *c, string song, string ip)
 --
 -- PARAMETERS:
---		ip - the requesting client's ip
+--      c - the client to play to
 --      song - the requested song
+--		ip - the requesting client's ip
 --
 -- RETURNS: void
 --
@@ -548,14 +549,14 @@ void playUnicast(Client *c, string song, string ip)
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Melvin Loho
 --
--- INTERFACE: void saveUnicast(string ip, string song);
+-- INTERFACE: void saveUnicast(Client *c, string song)
 --
 -- PARAMETERS:
---		ip - the ip of the requesting client
+--		c - the client to save to
 --      song - the requested song
 --
 -- RETURNS: void
@@ -577,9 +578,9 @@ void saveUnicast(Client *c, string song)
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Chris Klassen, Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Chris Klassen, Melvin Loho
 --
 -- INTERFACE: sendCurrentSongUni(Client *c, string song, bool usingTCP);
 --
@@ -712,9 +713,9 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Melvin Loho
 --
 -- INTERFACE: startUnicast();
 --
@@ -811,7 +812,7 @@ void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer, size_t size)
 --
 -- DESIGNER: Chris Klassen
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Chris Klassen, Melvin Loho
 --
 -- INTERFACE: void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels,
 --				  unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts )

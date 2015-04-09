@@ -82,7 +82,7 @@ HWAVEOUT outputDevice;
 LPWAVEHDR audioBuffers[NUM_OUTPUT_BUFFERS];
 
 // Microphone variables
-bool MicOn = true;
+bool MicOn = false;
 Mic *mic;
 MicOutput *micOutput;
 
@@ -119,6 +119,7 @@ QColor defaultColor = Qt::black;
 --
 -- PROGRAMMER:  Jonathan Chu
 --              Chris Klassen
+--              Melvin Loho
 --
 -- INTERFACE:   MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow)
 --
@@ -233,6 +234,7 @@ void MainWindow::changeVolume(int volume)
 -- PROGRAMMER: 
 --      Jonathan Chu
 --      Chris Klassen
+--      Melvin Loho
 --
 -- INTERFACE: void on_uPlayButton_clicked();
 --
@@ -310,6 +312,7 @@ void MainWindow::on_uPlayButton_clicked()
 --
 -- PROGRAMMER:  Jonathan Chu
 --              Chris Klassen
+--              Melvin Loho
 --
 -- INTERFACE:   void MainWindow::on_uDownloadButton_clicked()
 --
@@ -397,11 +400,13 @@ void MainWindow::on_micButton_clicked()
     if (!cData.connected) return;
 
     MicOn = !MicOn;
-    if (MicOn) {
+    if (MicOn)
+    {
         mic->startSending();
         ui->micButton->setText("Microphone ON");
     }
-    else {
+    else
+    {
         mic->stopSending();
         ui->micButton->setText("Microphone OFF");
     }
@@ -524,8 +529,15 @@ void MainWindow::on_actionConnectDisconnect_triggered()
         }
         else
         {
-            if (!connectIt()) return;
-    
+            if (!connectIt())
+            {
+                QMessageBox::critical(
+                 this,
+                 tr("Error"),
+                 tr("Can't connect to the server") );
+                return;
+            }
+
             cData.connected = true;
         }
     }
@@ -537,9 +549,9 @@ void MainWindow::on_actionConnectDisconnect_triggered()
             mic->stopSending();
             micOutput->stopListening();
 
-            disconnectIt();
+            focusTab(-1);
 
-            ui->micButton->setText("microphone ON");
+            cData.connected = false;
         }
         else
         {
@@ -627,6 +639,7 @@ void MainWindow::on_cCancelButton_clicked()
 --
 -- PROGRAMMER:  Jonathan Chu
 --              Chris Klassen
+--              Melvin Loho
 --
 -- INTERFACE:   bool MainWindow::connectIt()
 --

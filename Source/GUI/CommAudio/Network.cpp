@@ -19,9 +19,9 @@
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Chris Klassen, Melvin Loho
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Chris Klassen, Melvin Loho
 --
 -- NOTES:
 --      The functions in this file are primarily triggered by GUI elements and by
