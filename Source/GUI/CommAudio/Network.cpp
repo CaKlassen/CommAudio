@@ -94,7 +94,7 @@ bool connectControlChannel(ClientState *cData)
 
     host = (char *) cData->ip.c_str();
     port = cData->port;
-       
+
     // Create the socket
     if ((controlSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -334,6 +334,8 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer, boo
     
     startAudioOutputThread.join(); // wait for the thread to finish
     cout << "Finished unicast stream" << endl;
+
+    closesocket(unicastStreamSocket);
 }
 
 

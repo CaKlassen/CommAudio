@@ -136,14 +136,14 @@ void handleControlMessage(CMessage *cMsg, Client *c)
 	case END_CONNECTION:
 	{
 		// Client disconnecting
-		Server::disconnectClient(cMsg->msgData[0]);
+		Server::disconnectClient(c);
 		break;
 	}
 
 	case PLAY_SONG:
 	{
 		// Client requesting song over UDP
-		playUnicast(c, cMsg->msgData[0], inet_ntoa(c->cInfo.sin_addr));
+		playUnicast(c, cMsg->msgData[0], inet_ntoa(c->sinTCP.sin_addr));
 		break;
 	}
 
