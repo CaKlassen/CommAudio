@@ -132,8 +132,10 @@ bool connectControlChannel(ClientState *cData)
     return true;
 }
 
-void disconnectControlChannel()
+void disconnectAll()
 {
+    closesocket(unicastStreamSocket);
+    closesocket(multicastSocket);
     closesocket(controlSocket);
 }
 
@@ -335,32 +337,6 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer, boo
     startAudioOutputThread.join(); // wait for the thread to finish
     cout << "Finished unicast stream" << endl;
 
-    closesocket(unicastStreamSocket);
-}
-
-
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: disconnectUnicast
---
--- DATE: April 6, 2015
---
--- REVISIONS: (Date and Description)
---
--- DESIGNER: Chris Klassen
---
--- PROGRAMMER: Chris Klassen
---
--- INTERFACE: void disconnectUnicast();
---
--- PARAMETERS:
---
--- RETURNS: void
---
--- NOTES:
---     This function closes the unicast socket once a song has been streamed.
-----------------------------------------------------------------------------------------------------------------------*/
-void disconnectUnicast()
-{
     closesocket(unicastStreamSocket);
 }
 

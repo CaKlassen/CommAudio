@@ -493,6 +493,8 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 
 	if (!usingTCP)
 	{
+		SOCKET goodSocket = c->controlSI.socket;
+
 		// Load the song
 		stringstream songDir;
 		songDir << MUSIC_LOCATION << "/" << song;
@@ -510,13 +512,13 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		libvlc_media_release(media);
 		libvlc_media_player_play(mp);
 
-		while (!libvlc_media_player_is_playing(mp))
+		while (!libvlc_media_player_is_playing(mp) && c->controlSI.socket == goodSocket)
 		{
 			// Wait for the song to start
 		}
 
 		// While we are not done and there is data left to send
-		while (!done && libvlc_media_player_is_playing(mp));
+		while (!done && libvlc_media_player_is_playing(mp) && c->controlSI.socket == goodSocket);
 
 		libvlc_media_player_release(mp);
 
@@ -545,6 +547,8 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		newC.sinTCP.sin_port = htons(port + 2);
 		newC.controlSI.socket = socket(AF_INET, SOCK_STREAM, 0);
 
+		SOCKET goodSocket = newC.controlSI.socket;
+
 		// Connect to the client
 		if (connect(newC.controlSI.socket, (struct sockaddr *) &newC.sinTCP, sizeof(newC.sinTCP)) == -1)
 		{
@@ -565,7 +569,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 			ZeroMemory(buffer, SAVE_SIZE + 1);
 			string controlString;
 
-			while (!iFile.eof())
+			while (!iFile.eof() && c->controlSI.socket == goodSocket)
 			{
 				ZeroMemory(buffer, SAVE_SIZE + 1);
 				iFile.read(buffer, SAVE_SIZE);

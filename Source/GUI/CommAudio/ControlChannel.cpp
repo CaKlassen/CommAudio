@@ -157,12 +157,6 @@ void handleControlMessage(CMessage *cMsg)
 			break;
 		}
 
-        case END_CONNECTION:
-        {
-            // The server is shutting down
-            break;
-        }
-
         case TRACK_LIST:
         {
             // The server's current tracklist
