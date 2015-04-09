@@ -393,34 +393,6 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 	return true;
 }
 
-/*------------------------------------------------------------------------------------------------------------------
--- FUNCTION: disconnectClient
---
--- DATE: March 14, 2015
---
--- REVISIONS: (Date and Description)
---
--- DESIGNER: Melvin Loho
---
--- PROGRAMMER: Melvin Loho
---
--- INTERFACE: void disconnectClient(int socket);
---
--- PARAMETERS:
---		socket - the socket number for the disconnecting client
---
--- RETURNS: void
---
--- NOTES:
---     This function removes a client from the list of connected clients.
-----------------------------------------------------------------------------------------------------------------------*/
-void Server::disconnectClient(Client* c)
-{
-	closesocket(c->controlSI.socket);
-	clients.erase(std::remove(clients.begin(), clients.end(), c), clients.end());
-	pendingUnicastClients.erase(std::remove(pendingUnicastClients.begin(), pendingUnicastClients.end(), c), pendingUnicastClients.end());
-	delete c;
-}
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
@@ -439,7 +411,10 @@ void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overla
 
 	if (error != 0 || bytesTransferred == 0)
 	{
-		Server::disconnectClient(C);
+		closesocket(C->controlSI.socket);
+		clients.erase(std::remove(clients.begin(), clients.end(), C), clients.end());
+		pendingUnicastClients.erase(std::remove(pendingUnicastClients.begin(), pendingUnicastClients.end(), C), pendingUnicastClients.end());
+		delete C; C = nullptr;
 		return;
 	}
 
