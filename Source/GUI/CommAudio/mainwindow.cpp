@@ -130,8 +130,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->mainToolBar->setContextMenuPolicy(Qt::PreventContextMenu);
 
     updateMulticastSong("", "", "");
-    
-    
+
     mic = new Mic();
     micOutput = new MicOutput();
 }
@@ -294,8 +293,7 @@ void MainWindow::on_uDownloadButton_clicked()
                 if (downloadingIcons->text() == downloadAscii && currentMusic != i)
                 {
                     downloadingIcons->setText("");
-    
-    
+
                     if (allItems->textColor() == bothColor)
                         allItems->setTextColor(playColor);
                     else
@@ -471,7 +469,6 @@ void MainWindow::on_actionConnectDisconnect_triggered()
     else
     {
         // Microphone
-
         if (cData.connected)
         {
             mic->stopSending();
@@ -611,16 +608,15 @@ void MainWindow::disconnectIt()
     waveOutPause(outputDevice);
     waveOutClose(outputDevice);
     
-    
     for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
     {
         waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
     }
-       
+
     //once disconnected all tabs are available again
     focusTab(-1);
 
-    disconnectControlChannel();
+    disconnectAll();
 
     cData.connected = false;
     unicastSongDone = true;
@@ -924,7 +920,7 @@ void endSong()
         {
             std::cout << "Received end song" << endl;
             unicastSongDone = true;
-            disconnectUnicast();
+            disconnectAll();
         
             //waveOutPause(outputDevice);
             //waveOutClose(outputDevice);

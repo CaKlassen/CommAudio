@@ -50,7 +50,6 @@ namespace Server
 	std::deque<Client*>& getPendingUnicastClients();
 	bool recv(Client* c);
 	bool send(Client* c, std::string msg, sockaddr_in* sin = nullptr);
-	void disconnectClient(Client* c);
 }
 
 void sendCurrentSongMulti(int song, AudioMetaData *metaData);

@@ -133,13 +133,6 @@ void handleControlMessage(CMessage *cMsg, Client *c)
 	// Switch on the message's type
 	switch (cMsg->msgType)
 	{
-	case END_CONNECTION:
-	{
-		// Client disconnecting
-		Server::disconnectClient(c);
-		break;
-	}
-
 	case PLAY_SONG:
 	{
 		// Client requesting song over UDP
