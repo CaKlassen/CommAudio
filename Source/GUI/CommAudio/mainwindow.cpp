@@ -26,6 +26,7 @@
 --      void downloadSong(string filename);
 --      void saveSongPiece(BYTE *data, int dataLen);
 --      void doneSavingSong();
+--      void changeVolume(int volume);
 --
 -- DATE: March 9, 2015
 --
@@ -129,6 +130,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    
+    // Connect volume
+    connect(ui->volumeMulticast, SIGNAL(valueChanged(int)), this, SLOT(changeVolume(int)));
+    connect(ui->volumeUnicast, SIGNAL(valueChanged(int)), this, SLOT(changeVolume(int)));
 
     mWin = this;
     
@@ -182,6 +187,35 @@ MainWindow::~MainWindow()
     delete mic;
     delete micOutput;
     delete ui;
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: changeVolume
+--
+-- DATE: April 8, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: 
+--      Chris Klassen
+--
+-- PROGRAMMER: 
+--      Chris Klassen
+--
+-- INTERFACE: void changeVolume(int volume);
+--
+-- PARAMETERS:
+--      volume - the volume to set
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is a window slot that sets the audio volume.
+----------------------------------------------------------------------------------------------------------------------*/
+void MainWindow::changeVolume(int volume)
+{
+    setVolume(volume);
 }
 
 
@@ -365,11 +399,11 @@ void MainWindow::on_micButton_clicked()
     MicOn = !MicOn;
     if (MicOn) {
         mic->startSending();
-        ui->micButton->setText("microphone ON");
+        ui->micButton->setText("Microphone ON");
     }
     else {
         mic->stopSending();
-        ui->micButton->setText("microphone OFF");
+        ui->micButton->setText("Microphone OFF");
     }
 }
 

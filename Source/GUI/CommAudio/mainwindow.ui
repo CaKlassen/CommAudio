@@ -30,7 +30,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <property name="iconSize">
        <size>
@@ -116,7 +116,7 @@
              </font>
             </property>
             <property name="text">
-             <string>By:</string>
+             <string>Artist:</string>
             </property>
            </widget>
           </item>
@@ -134,7 +134,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Playing:</string>
+             <string>Song:</string>
             </property>
            </widget>
           </item>
@@ -157,7 +157,22 @@
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
-            <widget class="QSlider" name="verticalSlider">
+            <widget class="QSlider" name="volumeMulticast">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximum">
+              <number>100</number>
+             </property>
+             <property name="pageStep">
+              <number>1</number>
+             </property>
+             <property name="value">
+              <number>100</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -314,7 +329,16 @@ border-bottom-width:1px;</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
-            <widget class="QSlider" name="verticalSlider_2">
+            <widget class="QSlider" name="volumeUnicast">
+             <property name="maximum">
+              <number>100</number>
+             </property>
+             <property name="pageStep">
+              <number>1</number>
+             </property>
+             <property name="value">
+              <number>100</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>

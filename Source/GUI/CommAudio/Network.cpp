@@ -13,6 +13,7 @@
 --      bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin);
 --      void startMicrophone(ClientState *cData);
 --      void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+--      void setVolume(int vol);
 --
 -- DATE: March 17, 2015
 --
@@ -47,6 +48,8 @@ namespace Network
     MainWindow *GUI;
 }
 
+int volume = 100;
+
 // Network Variables
 SOCKET controlSocket;
 SOCKADDR_IN controlInfo;
@@ -72,6 +75,35 @@ void Network::setGUIHandle(MainWindow *window)
 }
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: setVolume
+--
+-- DATE: April 8, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: 
+--      Chris Klassen
+--
+-- PROGRAMMER: 
+--      Chris Klassen
+--
+-- INTERFACE: void setVolume(int vol);
+--
+-- PARAMETERS:
+--      vol - the volume to set
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is a window slot that sets the audio volume.
+----------------------------------------------------------------------------------------------------------------------*/
+void setVolume(int vol)
+{
+    volume = vol;
+}
 
 
 /*------------------------------------------------------------------------------------------------------------------
@@ -276,7 +308,7 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
             0, (struct sockaddr*) &multicastServerInfo, &infoSize);
         
         // Add the data to the buffer
-        musicBuffer->put(tempBuffer, numReceived);
+        musicBuffer->put(tempBuffer, numReceived, volume);
     }
 
     startAudioOutputThread.join(); // wait for the thread to finish
@@ -360,7 +392,7 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer, boo
         }
                 
         // Add the data to the buffer
-        musicBuffer->put(tempBuffer, numReceived);
+        musicBuffer->put(tempBuffer, numReceived, volume);
     }
     
     startAudioOutputThread.join(); // wait for the thread to finish

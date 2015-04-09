@@ -22,7 +22,7 @@ class MusicBuffer
     public:
         MusicBuffer();
         char* getBuffer();
-        void put(char *data, int dataSize);
+        void put(char *data, int dataSize, int volume = 100);
 		bool ready();
         int getEndPosition();
         void clear();
