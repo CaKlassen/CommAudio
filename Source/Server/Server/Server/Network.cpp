@@ -9,9 +9,9 @@
 --
 -- REVISIONS: (Date and Description)
 --
--- DESIGNER: Chris Klassen
+-- DESIGNER: Melvin Loho, Chris Klassen
 --
--- PROGRAMMER: Chris Klassen
+-- PROGRAMMER: Melvin Loho, Chris Klassen
 --
 -- NOTES:
 --     This file contains functions used to interface with the WinSock socket API.
@@ -40,6 +40,29 @@ AudioMetaData *mData;
 
 /// GENERAL STUFF
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: createSockAddrIn
+--
+-- DATE: March 16, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port)
+--
+-- PARAMETERS:
+--		sin - The sockaddrin object that is to be created
+--		ip - the ip address to associate the sin with
+--      port - the port number
+--
+-- RETURNS: bool - whether or not the sockaddr_in object was created successfully
+--
+-- NOTES:
+--     This function creates a sockaddr_in object with the specified parameters.
+----------------------------------------------------------------------------------------------------------------------*/
 bool createSockAddrIn(sockaddr_in& sin, std::string ip, unsigned short port)
 {
 	//sin = {};
@@ -352,17 +375,78 @@ bool Server::acceptConnection(SOCKET listenSocket, ServerMode sMode)
 	return success;
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: createClient
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: Client* Server::createClient()
+--
+-- PARAMETERS:
+--
+-- RETURNS: the newly created Client
+--
+-- NOTES:
+--     Creates a new Client.
+----------------------------------------------------------------------------------------------------------------------*/
 Client* Server::createClient()
 {
 	clients.emplace_back(new Client());
 	return clients.back();
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: getPendingUnicastClients
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: std::deque<Client*>& Server::getPendingUnicastClients()
+--
+-- PARAMETERS:
+--
+-- RETURNS: the deque of pending unicast clients.
+--
+-- NOTES:
+--     Returns the list of pending unicast clients.
+----------------------------------------------------------------------------------------------------------------------*/
 std::deque<Client*>& Server::getPendingUnicastClients()
 {
 	return pendingUnicastClients;
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: recv
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: bool Server::recv(Client* c)
+--
+-- PARAMETERS:
+--		c - The client to receive from.
+--
+-- RETURNS: success/fail
+--
+-- NOTES:
+--     Initiates a WSARecv call that will be completed by the completion routine.
+----------------------------------------------------------------------------------------------------------------------*/
 bool Server::recv(Client* c)
 {
 	DWORD bytesReceived = 0;
@@ -387,6 +471,29 @@ bool Server::recv(Client* c)
 	return true;
 }
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: send
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
+--
+-- PARAMETERS:
+--		c - The client to send to.
+--      msg - The message to send to the client.
+--      sin - The sockaddr_in object that determines whether this is to be sent via TCP or UDP (TCP if null).
+--
+-- RETURNS: success/fail
+--
+-- NOTES:
+--     Initiates a WSASend(to) call.
+----------------------------------------------------------------------------------------------------------------------*/
 bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 {
 	DWORD bytesSent = 0;
@@ -431,7 +538,30 @@ bool Server::send(Client* c, std::string msg, sockaddr_in* sin)
 	return true;
 }
 
-
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: onRecv
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
+--
+-- PARAMETERS:
+--		error - The error code if any.
+--      bytesTransferred - How many bytes were transferred.
+--      overlapped - The overlapped structure (can be casted).
+--      inFlags - The in flags.
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     Completes a receive call made using the completion routine.
+----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
 	CMessage cm;
