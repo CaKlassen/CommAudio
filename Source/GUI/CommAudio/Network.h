@@ -53,6 +53,7 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer);
 void streamMusic(ClientState *cData, std::string &song, MusicBuffer *musicBuffer, bool *songDone);
 void startMicrophone(ClientState *cData, MicOutput *micOutput);
 void requestSaveSong(std::string controlString);
+void setVolume(int volume);
 
 namespace ControlSocket
 {

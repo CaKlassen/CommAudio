@@ -37,6 +37,8 @@ private slots:
     void on_cOKButton_clicked();
 
     void on_cCancelButton_clicked();
+    
+    void changeVolume(int volume);
 
 private:
     Ui::MainWindow *ui;

@@ -89,22 +89,23 @@ char* MusicBuffer::getBuffer()
 --
 -- PROGRAMMER: Chris Klassen
 --
--- INTERFACE: void put(char *data, int dataSize);
+-- INTERFACE: void put(char *data, int dataSize, int volume);
 --
 -- PARAMETERS:
 --      data - the data to insert
 --      dataSize - the amount of data (in bytes)
+--      volume - the volume of the audio
 --
 -- RETURNS: void
 --
 -- NOTES:
 --     This function inserts data into the circular buffer.
 ----------------------------------------------------------------------------------------------------------------------*/
-void MusicBuffer::put(char *data, int dataSize)
+void MusicBuffer::put(char *data, int dataSize, int volume)
 {
     for (int i = 0; i < dataSize; i++)
     {
-        buffer[endPosition] = data[i];
+        buffer[endPosition] = data[i] * volume / 100;
         
         // If we are at the end of the buffer
         if (endPosition == BUFFER_SIZE - 1)
