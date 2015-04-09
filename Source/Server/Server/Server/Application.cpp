@@ -654,8 +654,6 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 		newC.sinTCP.sin_port = htons(port + 2);
 		newC.controlSI.socket = socket(AF_INET, SOCK_STREAM, 0);
 
-		SOCKET goodSocket = newC.controlSI.socket;
-
 		// Connect to the client
 		if (connect(newC.controlSI.socket, (struct sockaddr *) &newC.sinTCP, sizeof(newC.sinTCP)) == -1)
 		{
@@ -676,7 +674,7 @@ void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 			ZeroMemory(buffer, SAVE_SIZE + 1);
 			string controlString;
 
-			while (!iFile.eof() && c->controlSI.socket == goodSocket)
+			while (!iFile.eof())
 			{
 				ZeroMemory(buffer, SAVE_SIZE + 1);
 				iFile.read(buffer, SAVE_SIZE);
