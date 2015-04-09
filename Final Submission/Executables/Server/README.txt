@@ -1,5 +1,5 @@
-Comm Audio - ServerExecutable
-=============================
+Comm Audio - Server Executable
+==============================
 
 In order to run the server, the following steps must be completed:
 
