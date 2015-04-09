@@ -53,5 +53,6 @@ namespace Server
 }
 
 void sendCurrentSongMulti(int song, AudioMetaData *metaData);
+void endCurrentSong();
 
 #endif

@@ -954,10 +954,7 @@ void endSong()
         {
             unicastSongDone = true;
             disconnectAll();
-        
-            //waveOutPause(outputDevice);
-            //waveOutClose(outputDevice);
-        
+                
             musicBuffer.clear();  
             
             for (int i = 0; i < NUM_OUTPUT_BUFFERS; i++)
@@ -970,6 +967,8 @@ void endSong()
         
         case MULTICAST:
         {
+            musicBuffer.clear();
+                      
             break;         
         }
     }
