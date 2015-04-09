@@ -194,6 +194,44 @@ void sendCurrentSongMulti(int song, AudioMetaData *metaData)
 
 
 /*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: endCurrentSong
+--
+-- DATE: April 8, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void endCurrentSong();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is used to send all clients the end song message.
+----------------------------------------------------------------------------------------------------------------------*/
+void endCurrentSong()
+{
+	CMessage cMsg;
+	cMsg.msgType = END_SONG;
+
+	string controlString;
+	createControlString(cMsg, controlString);
+
+	// Loop through all clients in the connected client list
+	vector<Client*>::iterator it;
+
+	for (it = clients.begin(); it != clients.end(); it++)
+	{
+		Server::send(*it, controlString);
+	}
+}
+
+
+/*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: acceptConnection
 --
 -- DATE: March 9, 2015

@@ -500,6 +500,10 @@ bool playMulticast()
 				return false;
 			}
 		}
+
+		// Start the End Current Song thread
+		std::thread tEndCurrentSong(endCurrentSong);
+		tEndCurrentSong.detach();
 	}
 
 	return true;
