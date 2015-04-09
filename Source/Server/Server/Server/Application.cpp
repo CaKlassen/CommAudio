@@ -4,6 +4,21 @@
 -- PROGRAM: Server.exe
 --
 -- FUNCTIONS:
+--		int main(int argc, char* argv[]);
+--		bool loadTracklist(vector<string> *tlist, string location);
+--		void threadCtrlSocketLoop();
+--		bool startMulticast();
+--		bool startUnicast();
+--		bool playMulticast();
+--		void playUnicast(Client *c, std::string song, std::string ip);
+--		void saveUnicast(Client *c, std::string song);
+--		void sendCurrentSongUni(Client *c, std::string song, bool usingTCP);
+--		void startLibVLC();
+--		bool getMetaData(AudioMetaData *metaData, libvlc_media_t *media);
+--		void freeMetaData(AudioMetaData *metaData);
+--		void prepareRender(void* p_audio_data, uint8_t** pp_pcm_buffer, size_t size);
+--		void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channels,
+			unsigned int rate, unsigned int nb_samples, unsigned int bits_per_sample, size_t size, int64_t pts);
 --
 -- DATE: March 7, 2015
 --
@@ -67,6 +82,27 @@ SOCKADDR_IN multicastInfo;
 SOCKADDR_IN multicastDestInfo;
 struct ip_mreq multicastInterface;
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: threadCtrlSocketLoop
+--
+-- DATE: March 9, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: void threadCtrlSocketLoop();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function loops on the accept connection function of the server.
+----------------------------------------------------------------------------------------------------------------------*/
 void threadCtrlSocketLoop()
 {
 	while (Server::isAlive())
@@ -74,6 +110,7 @@ void threadCtrlSocketLoop()
 		Server::acceptConnection(listeningSocket, sMode);
 	}
 }
+
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: main
@@ -244,6 +281,28 @@ bool loadTracklist(vector<string> *tlist, string location)
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: getMetaData
+--
+-- DATE: April 2, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: bool getMetaData(AudioMetaData *metaData, libvlc_media_t *media);
+--
+-- PARAMETERS:
+--		metaData - the meta data struct to place data into
+--		media - the song to retrieve data from
+--
+-- RETURNS: bool - whether or not the metadata could be retrieved
+--
+-- NOTES:
+--     This function retrieves the meta data from a song.
+----------------------------------------------------------------------------------------------------------------------*/
 bool getMetaData(AudioMetaData *metaData, libvlc_media_t *media)
 {
 	libvlc_media_parse(media);
@@ -262,6 +321,27 @@ bool getMetaData(AudioMetaData *metaData, libvlc_media_t *media)
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: freeMetaData
+--
+-- DATE: April 2, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: void freeMetaData(AudioMetaData *metaData);
+--
+-- PARAMETERS:
+--		metaData - the meta data struct to free
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function frees the meta data from a song.
+----------------------------------------------------------------------------------------------------------------------*/
 void freeMetaData(AudioMetaData *metaData)
 {
 	libvlc_free(metaData->artist);
@@ -486,6 +566,29 @@ void saveUnicast(Client *c, string song)
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: sendCurrentSongUni
+--
+-- DATE: March 14, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: sendCurrentSongUni(Client *c, string song, bool usingTCP);
+--
+-- PARAMETERS:
+--		c - the client to send to
+--		song - the song to send
+--		usingTCP - whether or not to stream the file.
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function streams or sends (for saving) a song to the client.
+----------------------------------------------------------------------------------------------------------------------*/
 void sendCurrentSongUni(Client *c, string song, bool usingTCP)
 {
 	// loop until all of the song is sent
@@ -777,6 +880,26 @@ void handleStream(void* p_audio_data, uint8_t* p_pcm_buffer, unsigned int channe
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: getTracklist
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Chris Klassen
+--
+-- PROGRAMMER: Chris Klassen
+--
+-- INTERFACE: vector<string>* getTracklist();
+--
+-- PARAMETERS:
+--
+-- RETURNS: vector<string>* - the tracklist
+--
+-- NOTES:
+--     This function returns the server's tracklist.
+----------------------------------------------------------------------------------------------------------------------*/
 vector<string>* getTracklist()
 {
 	return &tracklist;

@@ -4,6 +4,28 @@
 -- PROGRAM: CommAudio.exe
 --
 -- FUNCTIONS:
+--      MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow);
+--      MainWindow::~MainWindow();
+--      void on_uPlayButton_clicked();
+--      void MainWindow::on_uDownloadButton_clicked();
+--      void MainWindow::on_micButton_clicked();
+--      void updateMulticastSong(string title, string artist, string album);
+--      void setTracklist(vector<string> *songs);
+--      void MainWindow::on_actionConnectDisconnect_triggered();
+--      void MainWindow::on_cOKButton_clicked();
+--      void MainWindow::on_cCancelButton_clicked();
+--      bool MainWindow::connectIt();
+--      void MainWindow::disconnectIt();
+--      void MainWindow::focusTab(int tabNumber);
+--      void MainWindow::errorMessage(QString message);
+--      void updateServerMode(ServerMode sMode);
+--      void outputAudio(MusicBuffer *buffer);
+--      void CALLBACK AudioCallback(HWAVEOUT hWave, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2);
+--      void sendMicrophone(SOCKET micSocket);
+--      void endSong();
+--      void downloadSong(string filename);
+--      void saveSongPiece(BYTE *data, int dataLen);
+--      void doneSavingSong();
 --
 -- DATE: March 9, 2015
 --
@@ -95,6 +117,7 @@ QColor defaultColor = Qt::black;
 -- DESIGNER:    Jonathan Chu
 --
 -- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
 --
 -- INTERFACE:   MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent),ui(new Ui::MainWindow)
 --
@@ -249,8 +272,10 @@ void MainWindow::on_uPlayButton_clicked()
 -- REVISIONS:   (Date and Description)
 --
 -- DESIGNER:    Jonathan Chu
+--              Chris Klassen
 --
 -- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
 --
 -- INTERFACE:   void MainWindow::on_uDownloadButton_clicked()
 --
@@ -433,8 +458,12 @@ void MainWindow::setTracklist(vector<string> *songs)
 -- REVISIONS:   (Date and Description)
 --
 -- DESIGNER:    Jonathan Chu
+--              Chris Klassen
+--              Melvin Loho
 --
 -- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
+--              Melvin Loho
 --
 -- INTERFACE:   void MainWindow::on_actionConnectDisconnect_triggered()
 --
@@ -501,6 +530,7 @@ void MainWindow::on_actionConnectDisconnect_triggered()
 -- DESIGNER:    Jonathan Chu
 --
 -- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
 --
 -- INTERFACE:   void MainWindow::on_cOKButton_clicked()
 --
@@ -562,6 +592,7 @@ void MainWindow::on_cCancelButton_clicked()
 -- DESIGNER:    Jonathan Chu
 --
 -- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
 --
 -- INTERFACE:   bool MainWindow::connectIt()
 --
@@ -588,8 +619,11 @@ bool MainWindow::connectIt()
 -- REVISIONS:   (Date and Description)
 --
 -- DESIGNER:    Jonathan Chu
+--              Chris Klassen
 --
 -- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
+--              Melvin Loho
 --
 -- INTERFACE:   void MainWindow::disconnectIt()
 --
@@ -918,7 +952,6 @@ void endSong()
     {
         case UNICAST:
         {
-            std::cout << "Received end song" << endl;
             unicastSongDone = true;
             disconnectAll();
         
@@ -932,7 +965,6 @@ void endSong()
                 waveOutUnprepareHeader(outputDevice, audioBuffers[i], sizeof(WAVEHDR)); 
             }        
             
-            std::cout << "Received end song DONE" << endl;
             break; 
         }
         
@@ -943,7 +975,6 @@ void endSong()
     }
 }
 
-int dataSize = 0;
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: downloadSong
@@ -1043,7 +1074,6 @@ void downloadSong(string filename)
 ----------------------------------------------------------------------------------------------------------------------*/
 void saveSongPiece(BYTE *data, int dataLen)
 {
-    dataSize += dataLen;
     outputFile->write((char *) data, dataLen);
 }
 
@@ -1070,6 +1100,5 @@ void saveSongPiece(BYTE *data, int dataLen)
 ----------------------------------------------------------------------------------------------------------------------*/
 void doneSavingSong()
 {
-    std::cout << "DONE" << endl;
     doneSavingFile = true;
 }

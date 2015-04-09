@@ -4,6 +4,15 @@
 -- PROGRAM: CommAudio.exe
 --
 -- FUNCTIONS:
+--      void connectControlChannel(ClientState *cData);
+--      void disconnectAll();
+--      bool requestSaveSong(string controlString);
+--      void connectMusic(ClientState *cData);
+--      void streamMusic(ClientState *cData, string &song);
+--      bool recv(SocketInfo *si);
+--      bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin);
+--      void startMicrophone(ClientState *cData);
+--      void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
 --
 -- DATE: March 17, 2015
 --
@@ -63,6 +72,7 @@ void Network::setGUIHandle(MainWindow *window)
 }
 
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+
 
 /*------------------------------------------------------------------------------------------------------------------
 -- FUNCTION: connectContolChannel
@@ -132,6 +142,27 @@ bool connectControlChannel(ClientState *cData)
     return true;
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: disconnectAll
+--
+-- DATE: April 6, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: void disconnectAll();
+--
+-- PARAMETERS:
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function closes all sockets.
+----------------------------------------------------------------------------------------------------------------------*/
 void disconnectAll()
 {
     closesocket(unicastStreamSocket);
@@ -231,8 +262,6 @@ bool connectMusic(ClientState *cData, MusicBuffer *musicBuffer)
 
     // Start streaming the audio
     std::thread startAudioOutputThread(outputAudio, musicBuffer);
-    // TODO constrain the above thread creation to only happen if the WaveCallback() have been stopped
-    // TODO or else there will be multiple outputs if the user spams the connect/disconnect button.
     
     // While we are still connected
     while (cData->connected)
@@ -341,6 +370,27 @@ void streamMusic(ClientState *cData, string &song, MusicBuffer *musicBuffer, boo
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: recv
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: bool recv(SocketInfo *si);
+--
+-- PARAMETERS:
+--      si - the socket information structure to receive from.
+--
+-- RETURNS: bool - whether or not the receive succeeded.
+--
+-- NOTES:
+--     This starts the Completion Port receive loop.
+----------------------------------------------------------------------------------------------------------------------*/
 bool ControlSocket::recv(SocketInfo* si)
 {
     DWORD bytesReceived = 0;
@@ -365,6 +415,30 @@ bool ControlSocket::recv(SocketInfo* si)
     return true;
 }
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: send
+--
+-- DATE: March 26, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin);
+--
+-- PARAMETERS:
+--      si - the socket information structure to send to
+--      msg - the message to send
+--      sin - the the sockaddr_in struct to use in sending
+--
+-- RETURNS: bool - whether or not the send succeeded.
+--
+-- NOTES:
+--     This sends data to the server asynchronously.
+----------------------------------------------------------------------------------------------------------------------*/
 bool ControlSocket::send(SocketInfo* si, std::string msg, sockaddr_in* sin)
 {
     DWORD bytesSent = 0;
@@ -444,6 +518,30 @@ void startMicrophone(ClientState *cData, MicOutput *micOutput)
 }
 
 
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION: onRecv
+--
+-- DATE: March 27, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Melvin Loho
+--
+-- PROGRAMMER: Melvin Loho
+--
+-- INTERFACE: void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags);
+--
+-- PARAMETERS:
+--      error - the callback error code
+--      bytesTransferred - the number of bytes transferred in the receive
+--      overlapped - the overlapped structure used
+--      inFlags - the receive flags
+--
+-- RETURNS: void
+--
+-- NOTES:
+--     This function is a completion port callback for receiving.
+----------------------------------------------------------------------------------------------------------------------*/
 void CALLBACK onRecv(DWORD error, DWORD bytesTransferred, LPWSAOVERLAPPED overlapped, DWORD inFlags)
 {
     CMessage cm;
