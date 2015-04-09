@@ -4,6 +4,13 @@
 -- PROGRAM: CommAudio.exe
 --
 -- FUNCTIONS:
+--      MicOutput();
+--      ~MicOutput();
+--      void setData(ClientState *cData);
+--      void startListening();
+--      void stopListening();
+--      void onNewState(QAudio::State state);
+--      void play();
 --
 -- DATE: April 4, 2015
 --

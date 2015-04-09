@@ -1,9 +1,15 @@
 /*------------------------------------------------------------------------------------------------------------------
 -- SOURCE FILE: MusicBuffer.cpp - This file contains all MusicBuffer functions.
 --
--- PROGRAM: CommAudio.exe
+-- PROGRAM: Server.exe
 --
 -- FUNCTIONS:
+--		MusicBuffer();
+--		char* getBuffer();
+--		void put(char *data, int dataSize);
+--		bool ready();
+--		int getEndPosition();
+--		void clear();
 --
 -- DATE: March 18, 2015
 --

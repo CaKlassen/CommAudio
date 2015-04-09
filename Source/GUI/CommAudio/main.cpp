@@ -1,3 +1,26 @@
+/*------------------------------------------------------------------------------------------------------------------
+-- SOURCE FILE: main.cpp - This file handles the start of the program.
+--
+-- PROGRAM: CommAudio.exe
+--
+-- FUNCTIONS:
+--      int main(int argc, char *argv[])
+--
+-- DATE: February 23, 2015
+--
+-- REVISIONS: (Date and Description)
+--
+-- DESIGNER: Jonathan Chu
+--           Chris Klassen
+--
+-- PROGRAMMER: Jonathan Chu
+--             Chris Klassen
+--
+-- NOTES:
+--      This file contains the jumping off point for the application.
+----------------------------------------------------------------------------------------------------------------------*/
+
+
 #include "mainwindow.h"
 #include <QApplication>
 #include <QWidget>
@@ -11,6 +34,24 @@
 
 WSADATA stWSAData;
 
+
+/*------------------------------------------------------------------------------------------------------------------
+-- FUNCTION:    main
+--
+-- DATE:        February 23, 2015
+--
+-- REVISIONS:   (Date and Description)
+--
+-- DESIGNER:    Jonathan Chu
+--
+-- PROGRAMMER:  Jonathan Chu
+--              Chris Klassen
+--
+-- INTERFACE:   int main(int argc, char *argv[]);
+--
+-- NOTES:
+--          The main function of the application.
+----------------------------------------------------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
     // Start WinSock

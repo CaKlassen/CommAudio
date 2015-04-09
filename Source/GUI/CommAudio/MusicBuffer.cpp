@@ -4,6 +4,12 @@
 -- PROGRAM: CommAudio.exe
 --
 -- FUNCTIONS:
+--      MusicBuffer();
+--      char* getBuffer();
+--      void put(char *data, int dataSize);
+--      bool ready();
+--      int getEndPosition();
+--      void clear();
 --
 -- DATE: March 18, 2015
 --

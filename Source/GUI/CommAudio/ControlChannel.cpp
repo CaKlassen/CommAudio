@@ -1,9 +1,12 @@
 /*------------------------------------------------------------------------------------------------------------------
 -- SOURCE FILE: ControlChannel.cpp - a collection of functions used to handle server-client control messages.
 --
--- PROGRAM: 
+-- PROGRAM: CommAudio.exe
 --
 -- FUNCTIONS:
+--      void createControlString(CMessage *cMsg, string *str);
+--      void parseControlString(string str, CMessage *cMsg);
+--      void handleControlMessage(CMessage *cMsg);
 --
 -- DATE: February 23, 2015
 --
@@ -168,13 +171,6 @@ void handleControlMessage(CMessage *cMsg)
         {
             // The currently playing multicast song
             ControlChannel::GUI->updateMulticastSong(cMsg->msgData[0], cMsg->msgData[1], cMsg->msgData[2]);
-            break;
-        }
-
-        case SONG_PIECE:
-        {
-            // A piece of a song to save to a file
-            saveSongPiece((BYTE *) cMsg->msgData[0].c_str(), strlen(cMsg->msgData[0].c_str()));
             break;
         }
         

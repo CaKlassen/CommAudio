@@ -4,6 +4,9 @@
 -- PROGRAM: Server.exe
 --
 -- FUNCTIONS:
+--		void createControlString(CMessage &cMsg, string &str);
+--		void parseControlString(string str, CMessage *cMsg);
+--		void handleControlMessage(CMessage *cMsg);
 --
 -- DATE: February 23, 2015
 --
